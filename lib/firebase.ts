@@ -19,9 +19,18 @@ const REQUIRED_FIREBASE_ENV = [
 
 const missing = REQUIRED_FIREBASE_ENV.filter((key) => !process.env[key]);
 if (missing.length > 0) {
-  throw new Error(
-    `Missing required environment variable(s): ${missing.join(', ')}`
-  );
+  const message = `Missing required environment variable(s): ${missing.join(', ')}`;
+  console.error('[Multilinguahe] ' + message);
+  if (typeof document !== 'undefined') {
+    document.body.innerHTML =
+      '<div style="position:fixed;inset:0;z-index:99999;background:#0b0f1a;color:#e5e7eb;' +
+      'display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;padding:24px">' +
+      '<div style="max-width:520px"><h2 style="color:#f43f5e;margin:0 0 8px">Not configured</h2>' +
+      '<p style="margin:0 0 4px">' + message + '.</p>' +
+      '<p style="color:#9ca3af;margin:0">Add these to your build environment ' +
+      '(Vercel &rarr; Settings &rarr; Environment Variables) and redeploy.</p></div></div>';
+  }
+  throw new Error(message + '. Check build environment variables.');
 }
 
 // Injected at build time via `define` in vite.config.ts

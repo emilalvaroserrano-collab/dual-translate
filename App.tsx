@@ -30,9 +30,15 @@ import { useAuth, updateUserSettings } from './lib/auth';
 import { useSettings } from './lib/state';
 
 const API_KEY = process.env.GEMINI_API_KEY;
-if (typeof API_KEY !== 'string') {
-  throw new Error(
-    'Missing required environment variable: GEMINI_API_KEY'
+function MissingKeyScreen() {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: '#0b0f1a', color: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', padding: 24 }}>
+      <div style={{ maxWidth: 520 }}>
+        <h2 style={{ color: '#f43f5e', margin: '0 0 8px' }}>GEMINI_API_KEY not configured</h2>
+        <p style={{ margin: '0 0 4px' }}>Missing required environment variable: GEMINI_API_KEY.</p>
+        <p style={{ color: '#9ca3af', margin: 0 }}>Add it to your build environment (Vercel &gt; Settings &gt; Environment Variables) and redeploy.</p>
+      </div>
+    </div>
   );
 }
 
@@ -42,6 +48,9 @@ if (typeof API_KEY !== 'string') {
  */
 function App() {
   const { user } = useAuth();
+  if (typeof API_KEY !== 'string') {
+    return <MissingKeyScreen />;
+  }
 
   useEffect(() => {
     if (!user) return;
