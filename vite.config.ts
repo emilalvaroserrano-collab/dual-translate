@@ -21,9 +21,15 @@ const FIREBASE_TOKENS: Record<string, string> = {
 };
 
 function injectFirebaseCreds(html: string, env: Record<string, string>): string {
-  return Object.entries(FIREBASE_TOKENS).reduce(
+  // 1. Quoted tokens (config values): inject as a JSON string.
+  let out = Object.entries(FIREBASE_TOKENS).reduce(
     (acc, [token, envKey]) => acc.split('"' + token + '"').join(JSON.stringify(env[envKey] ?? '')),
     html
+  );
+  // 2. Any remaining raw tokens (e.g. footer label): inject as plain text.
+  return Object.entries(FIREBASE_TOKENS).reduce(
+    (acc, [token, envKey]) => acc.split(token).join(env[envKey] ?? token),
+    out
   );
 }
 

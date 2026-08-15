@@ -436,7 +436,7 @@
               </div>
 
               <div class="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-500">
-                <span>Firebase: <strong class="text-zinc-400">eburon-bd040</strong></span>
+                <span>Firebase: <strong class="text-zinc-400">__FIREBASE_PROJECT_ID__</strong></span>
                 <span class="font-mono">RTDB Europe-West1</span>
               </div>
             </div>
@@ -1259,19 +1259,8 @@
   <!-- ========================================================================= -->
   <script>
     // Firebase creds are injected from the app env at serve/build time
-    // (vite.config.ts replaces __FIREBASE_*__ tokens with .env.local values).
-    // Fallback values below only kick in when the file is opened directly
-    // (no injection), so it never ships with broken tokens.
-    const FIREBASE_CRED_FALLBACK = {
-      __FIREBASE_API_KEY__: "AIzaSyAQduaHGf6FI5M89wEQmQ35K5Eo04A6WnU",
-      __FIREBASE_AUTH_DOMAIN__: "eburon-bd040.firebaseapp.com",
-      __FIREBASE_DATABASE_URL__: "https://eburon-bd040-default-rtdb.europe-west1.firebasedatabase.app",
-      __FIREBASE_PROJECT_ID__: "eburon-bd040",
-      __FIREBASE_STORAGE_BUCKET__: "eburon-bd040.firebasestorage.app",
-      __FIREBASE_MESSAGING_SENDER_ID__: "30841056766",
-      __FIREBASE_APP_ID__: "1:30841056766:web:ec5096088ecd16b237e4af",
-      __FIREBASE_MEASUREMENT_ID__: "G-GRN6HYJNC5"
-    };
+    // (vite.config.ts replaces __FIREBASE_*__ tokens with env values).
+    // No credential values are shipped in this file.
     const firebaseConfig = {
       apiKey: "__FIREBASE_API_KEY__",
       authDomain: "__FIREBASE_AUTH_DOMAIN__",
@@ -1282,12 +1271,18 @@
       appId: "__FIREBASE_APP_ID__",
       measurementId: "__FIREBASE_MEASUREMENT_ID__"
     };
-    Object.keys(firebaseConfig).forEach((k) => {
-      const v = firebaseConfig[k];
-      if (typeof v === 'string' && v.startsWith('__FIREBASE_')) {
-        firebaseConfig[k] = FIREBASE_CRED_FALLBACK[v] || v;
-      }
-    });
+    const unmappedToken = Object.values(firebaseConfig).find(
+      (v) => typeof v === 'string' && v.startsWith('__FIREBASE_')
+    );
+    if (unmappedToken) {
+      document.body.innerHTML =
+        '<div style="font-family:system-ui;-apple-system,sans-serif;padding:40px;color:#222;background:#f6f6f6;min-height:100vh">' +
+        '<h2 style="margin-top:0">Admin Portal is not configured</h2>' +
+        '<p>Credential tokens were not injected (<code>' + unmappedToken + '</code>).</p>' +
+        '<p>Open this page through the app at <code>/admin</code>, or run a build that has the ' +
+        '<code>FIREBASE_*</code> environment variables set.</p></div>';
+      throw new Error('Admin Portal config not injected: ' + unmappedToken);
+    }
 
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
