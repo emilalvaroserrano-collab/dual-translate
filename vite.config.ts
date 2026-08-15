@@ -28,7 +28,12 @@ function injectFirebaseCreds(html: string, env: Record<string, string>): string 
 }
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
+    // loadEnv only reads committed .env* files; merge process.env so hosts like
+    // Vercel (which injects project env vars during build) get these values too.
+    const env: Record<string, string> = {
+      ...loadEnv(mode, '.', ''),
+      ...(process.env as Record<string, string>),
+    };
     const adminFile = path.resolve(__dirname, 'public', 'admin', 'index.html');
 
     const serveAdmin = (req: any, res: any, next: any) => {
