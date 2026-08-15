@@ -1,0 +1,30 @@
+# AGENTS.md
+
+Real-time dual-language voice translator ("Multilinguahe") — React 19 + Vite + TS SPA using the Gemini Live API (real-time audio streaming). Desktop Chrome is the only realistic runtime target (Web Audio, AudioWorklets, mic).
+
+## Commands
+
+- `npm run dev` — Vite dev server on **port 3000**, host `0.0.0.0` (not the default 5173)
+- `npm run lint` — runs `tsc --noEmit` (there is no ESLint); this is the verification gate before finishing changes
+- `npm run build` — `vite build`
+- No tests exist.
+
+## Environment
+
+- `GEMINI_API_KEY` is required: `App.tsx:32-37` throws at module load if it's missing, and it's injected at build time via `define` in `vite.config.ts:14` (loaded from any env file in repo root; put it in `.env.local`, which is gitignored by `*.local`). The Firebase credentials (`FIREBASE_*` in `lib/firebase.ts`, required RTDB vars throw at module load) are injected the same way — all defined via `define` in `vite.config.ts`. Non-`VITE_` prefixed vars only exist at runtime where `define` replaces them, so code must reference them as `process.env.X`. The dev server proxies nothing — the keys are shipped client-side in the bundle. The Admin Portal pulls its Firebase creds from the same env: the `admin-portal` plugin (in `vite.config.ts`) reads `loadEnv(mode, '.', '')` and replaces `__FIREBASE_*__` tokens in `public/admin/index.html` (Vite's `define` does NOT transform `public/` files) — via a `serveAdmin` middleware for `/admin` (+ trailing slash, + index.html) in dev/preview, and via a `closeBundle` hook baked into `dist/admin/index.html` for static hosts. Direct-open of the raw file falls back to `FIREBASE_CRED_FALLBACK`, a token-keyed object holding the same values.
+
+## Architecture
+
+- `contexts/LiveAPIContext.tsx` → `hooks/media/use-live-api.ts` → `lib/genai-live-client.ts` (EventEmitter3 wrapper around `@google/genai` `live.connect`). The hook owns the playback `AudioStreamer`.
+- Live session config (modalities, voice, system instruction, `setGuestLanguage` function declaration) is built in `components/demo/streaming-console/StreamingConsole.tsx:36-74` and sent via `setConfig`.
+- Mic → `lib/audio-recorder.ts` → `client.sendRealtimeInput` chunks (sent from `ControlTray.tsx`); server PCM16 → `lib/audio-streamer.ts` (24 kHz, queues Float32 buffers, pluggable AudioWorklets).
+- All state is zustand, mostly in `lib/state.ts`: `useSettings` (languages/topic/medical/autoDetect), `useLogStore` (transcription/translation turns), plus `useUI` and `useHistoryStore` (`lib/history.ts`, persisted to localStorage key `translation-history-storage`).
+- Path alias `@/` → repo root (`./`), configured in both `tsconfig.json` paths and `vite.config.ts`.
+
+## Gotchas
+
+- **Auth is real Firebase now.** `index.tsx` gates on `useAuth` (loading/user) and lazy-loads `App` so the auth page never requires `GEMINI_API_KEY`; `components/auth/AuthPage.tsx` has email/password, sign-up, reset, and Google popup sign-in. `lib/auth.ts` syncs the store via `onAuthStateChanged` and on sign-in writes an admin-dashboard-compatible record to `users/{uid}` (role `superadmin|admin|member`, credits, status), plus entries to `activity_logs` and `notifications`. Superadmins are hardcoded by email (`SUPERADMIN_EMAILS`, `lib/auth.ts:42`). Google popup sign-in only works from domains authorized in the Firebase console. `updateUserConversations(userId, userEmail, turns, pair)` only saves complete user→agent pairs (`users/{uid}/translations`, incl. `sourceText`/`translatedText`/`lang1`/`lang2`/`userEmail`/`timestamp`) and best-effort mirrors each saved pair to a top-level `activity_logs` entry (`category: 'Translation'`) for the admin dashboard — `turncomplete` also fires on lone user utterances, so the guard on `lastTurn.role === 'agent'` is intentional. `ensureUserRecord` now also pre-creates the `users/{uid}/translations` and `users/{uid}/settings` child nodes at sign-in (`ensureUserChildNodes`), so the "history table" always exists even before the first exchange. The **Admin Portal** is a standalone static page copied into `public/admin/index.html` and served at the `/admin` route of this app (the `admin-portal` plugin's `serveAdmin` middleware in `vite.config.ts` serves `/admin`, `/admin/`, and `/admin/index.html`, injecting the Firebase creds from the app-root env — this also prevents Vite's SPA fallback from serving the React shell for extensionless `/admin`; in the built `dist/` the creds are baked in via the plugin's `closeBundle` hook). It is a fully self-contained HTML file (inline CSS/JS + Firebase compat SDK via CDN) with a Translations tab + per-user translations modal reading `users/{uid}/translations` across all users. The standalone source copy lives at `/Users/masterdee/Desktop/dual/admin/index.html` — keep the two in sync when editing.
+- **The system prompt is generated**, not static: `generateSystemPrompt` in `lib/state.ts` bakes in the Dutch/Flemish vs. other-language pairing logic. Every setting change (`setLanguage1/2`, `setTopic`, `setMedicalMode`, `setAutoDetect`) regenerates it. Language switching at runtime happens via the `setGuestLanguage` tool call handled in `StreamingConsole.tsx:151`, which also flips autoDetect off.
+- `lib/tools.ts` (`AVAILABLE_TOOLS`) and `lib/tools/*` (customer-support, navigation-system, personal-assistant) are **dead code** — imported nowhere; the only function declaration sent to the model is `setGuestLanguage`.
+- `lib/utils.ts` `audioContext()` singleton requires a user gesture (pointer/keydown) before it resolves; `use-vad.ts` is a crude volume-threshold VAD (0.05, 1.5s silence) — speaking indicators derive from mic/out volume worklets, not VAD SDK.
+- The codebase descends from Google's Live API sample template; files carry Apache-2.0 header comments and some legacy config (`useDefineForClassFields: false`, `allowJs`). Keep the headers on touched files, but they're not a signal of project conventions.

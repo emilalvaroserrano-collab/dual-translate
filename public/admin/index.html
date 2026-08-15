@@ -1,0 +1,3498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eburon AI — Admin Dashboard</title>
+
+  <!-- Tailwind CSS & Inter Font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase App & Services (Compat SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Sleek Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #000000; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    
+    .glass-card {
+      background: linear-gradient(180deg, rgba(24, 24, 27, 0.75) 0%, rgba(9, 9, 11, 0.9) 100%);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .black-gradient {
+      background: radial-gradient(circle at 50% 0%, #18181b 0%, #09090b 50%, #000000 100%);
+    }
+
+    /* Circle Badge Effect */
+    .circle-logo-badge {
+      border-radius: 9999px;
+      aspect-ratio: 1 / 1;
+      background: radial-gradient(circle at 30% 30%, #27272a 0%, #18181b 60%, #09090b 100%);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8), 0 0 15px 1px rgba(99, 102, 241, 0.15);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+    }
+  </style>
+</head>
+<body class="bg-black text-zinc-100 font-sans antialiased min-h-screen selection:bg-indigo-600 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- TOAST NOTIFICATION CONTAINER (Realtime alerts in bottom-right) -->
+  <!-- ========================================================================= -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- ========================================================================= -->
+  <!-- AUTHENTICATION SCREEN (Shown when logged out) -->
+  <!-- ========================================================================= -->
+  <div id="authScreen" class="fixed inset-0 z-40 flex items-center justify-center p-4 black-gradient">
+    <div class="w-full max-w-md bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-black border border-zinc-800/80 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl relative overflow-hidden">
+      <!-- Ambient Glows -->
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-zinc-700/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Header with Circular Rounded Background Logo -->
+      <div class="text-center mb-7 relative">
+        <div class="circle-logo-badge w-24 h-24 p-3 flex items-center justify-center mx-auto mb-4 overflow-hidden ring-4 ring-indigo-500/10">
+          <img src="https://dual.eburon.ai/logo.png" alt="Eburon Logo" class="w-full h-full object-contain rounded-full" />
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Eburon AI</h1>
+        <p class="text-xs text-zinc-400 mt-1">Sign in to access your administrative workspace</p>
+      </div>
+
+      <!-- Auth Error Box -->
+      <div id="authError" class="hidden mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="authErrorText">Authentication error</span>
+      </div>
+
+      <!-- Google Sign In Button -->
+      <button onclick="handleGoogleSignIn()" class="w-full mb-4 flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold py-3 px-4 rounded-xl transition duration-200 shadow-md">
+        <svg class="w-5 h-5" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="relative flex py-2 items-center">
+        <div class="flex-grow border-t border-zinc-800"></div>
+        <span class="flex-shrink mx-3 text-xs text-zinc-500 uppercase tracking-wider font-semibold">Or with Email</span>
+        <div class="flex-grow border-t border-zinc-800"></div>
+      </div>
+
+      <!-- Email Form -->
+      <form id="emailAuthForm" onsubmit="handleEmailAuth(event)" class="space-y-4 mt-2">
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Email Address</label>
+          <div class="relative">
+            <i class="fa-regular fa-envelope absolute left-3.5 top-3.5 text-zinc-500 text-sm"></i>
+            <input type="email" id="authEmail" required placeholder="admin@domain.com" class="w-full bg-black/70 border border-zinc-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Password</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-zinc-500 text-sm"></i>
+            <input type="password" id="authPassword" required placeholder="••••••••" class="w-full bg-black/70 border border-zinc-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="submit" id="signInBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition shadow-lg shadow-indigo-600/30">
+            Sign In
+          </button>
+          <button type="button" onclick="handleSignUp()" class="px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-sm font-medium transition hover:bg-zinc-900">
+            Sign Up
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- ACCESS DENIED SCREEN (Only master@eburon.ai & martijn@eburon.ai allowed) -->
+  <!-- ========================================================================= -->
+  <div id="accessDenied" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 black-gradient">
+    <div class="w-full max-w-md bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-black border border-zinc-800/80 rounded-3xl p-8 shadow-2xl backdrop-blur-2xl relative overflow-hidden text-center">
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-red-600/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-zinc-700/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="circle-logo-badge w-20 h-20 p-4 flex items-center justify-center mx-auto mb-5 overflow-hidden ring-4 ring-red-500/10">
+        <img src="https://dual.eburon.ai/logo.png" alt="Eburon Logo" class="w-full h-full object-contain rounded-full" />
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight text-white">Access Denied</h1>
+      <p class="text-sm text-zinc-400 mt-3">This Admin Portal is restricted to <span class="text-indigo-300 font-medium">master@eburon.ai</span> and <span class="text-indigo-300 font-medium">martijn@eburon.ai</span> only.</p>
+      <p id="deniedEmail" class="text-xs text-zinc-500 mt-3"></p>
+      <button onclick="handleSignOut()" class="mt-6 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold shadow-lg shadow-red-600/30 transition">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN APP WRAPPER (Black Gradient Theme) -->
+  <!-- ========================================================================= -->
+  <div id="mainApp" class="hidden flex h-screen overflow-hidden black-gradient">
+
+    <!-- SIDEBAR (Mobile backdrop) -->
+    <div id="mobileBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-black/80 z-20 md:hidden hidden transition-opacity"></div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-30 w-64 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 border-r border-zinc-800/80 flex flex-col justify-between transition-transform duration-300 transform -translate-x-full md:translate-x-0 backdrop-blur-xl">
+      <div>
+        <!-- Circular Rounded Logo in Sidebar Header -->
+        <div class="h-20 flex items-center justify-between px-5 border-b border-zinc-800/70">
+          <div class="flex items-center gap-3">
+            <div class="circle-logo-badge w-12 h-12 p-1.5 flex items-center justify-center ring-2 ring-indigo-500/10 flex-shrink-0 overflow-hidden">
+              <img src="https://dual.eburon.ai/logo.png" alt="Eburon Logo" class="w-full h-full object-contain rounded-full" />
+            </div>
+            <div>
+              <span class="font-bold text-base tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">Eburon AI</span>
+              <span class="block text-[10px] uppercase font-semibold tracking-wider text-indigo-400">Admin Suite</span>
+            </div>
+          </div>
+          <button onclick="toggleSidebar()" class="md:hidden text-zinc-400 hover:text-white">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Navigation items -->
+        <nav class="p-4 space-y-1.5">
+          <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-indigo-400 bg-indigo-600/10 border border-indigo-500/20">
+            <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" onclick="switchTab('users')" id="nav-users" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition">
+            <i class="fa-solid fa-users-gear w-5 text-center"></i>
+            <span>Users & Access</span>
+          </a>
+          <a href="#" onclick="switchTab('history')" id="nav-history" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition">
+            <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i>
+            <span>Activity Logs</span>
+          </a>
+          <a href="#" onclick="switchTab('translations')" id="nav-translations" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition">
+            <i class="fa-solid fa-language w-5 text-center"></i>
+            <span>Translations</span>
+            <span id="navTranslBadge" class="ml-auto text-[10px] bg-emerald-600/80 text-white px-2 py-0.5 rounded-full hidden">0</span>
+          </a>
+          <a href="#" onclick="switchTab('billing')" id="nav-billing" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition">
+            <i class="fa-solid fa-coins w-5 text-center"></i>
+            <span>Token Billing</span>
+          </a>
+          <a href="#" onclick="switchTab('create-user')" id="nav-create-user" class="superadmin-only hidden nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition border border-dashed border-zinc-700/50 hover:border-indigo-500/30">
+            <i class="fa-solid fa-user-plus w-5 text-center text-emerald-400"></i>
+            <span>Create User</span>
+          </a>
+          <a href="#" onclick="switchTab('notifications')" id="nav-notifications" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition">
+            <i class="fa-solid fa-bell w-5 text-center"></i>
+            <span>Notifications</span>
+            <span id="navNotifBadge" class="ml-auto text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full hidden">0</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Current User Profile in Sidebar Footer -->
+      <div class="p-4 border-t border-zinc-800/80 bg-zinc-950/60">
+        <div class="flex items-center gap-3">
+          <img id="userAvatar" src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" class="w-10 h-10 rounded-full border border-zinc-700 object-cover" alt="Avatar">
+          <div class="overflow-hidden flex-1">
+            <p id="userName" class="text-sm font-semibold text-white truncate">User Name</p>
+            <p id="userRoleBadge" class="text-[11px] text-indigo-400 font-medium truncate">Viewer</p>
+          </div>
+          <button onclick="handleSignOut()" title="Sign Out" class="p-2 text-zinc-400 hover:text-red-400 transition rounded-xl hover:bg-zinc-900">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT WRAPPER -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      
+      <!-- TOP NAVIGATION BAR -->
+      <header class="h-16 bg-zinc-950/80 border-b border-zinc-800/80 flex items-center justify-between px-4 sm:px-6 backdrop-blur-xl z-10">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleSidebar()" class="md:hidden text-zinc-400 hover:text-white p-2 rounded-xl bg-zinc-900">
+            <i class="fa-solid fa-bars text-base"></i>
+          </button>
+          <div class="hidden sm:flex items-center gap-2 text-xs text-zinc-400 bg-zinc-900/80 px-3 py-1.5 rounded-full border border-zinc-800">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Realtime RTDB Connected</span>
+          </div>
+        </div>
+
+        <!-- Right Side Icons & Actions -->
+        <div class="flex items-center gap-3">
+          
+          <!-- Notifications Dropdown -->
+          <div class="relative">
+            <button onclick="toggleNotificationDropdown()" class="relative p-2.5 text-zinc-300 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 rounded-xl transition border border-zinc-800">
+              <i class="fa-regular fa-bell text-base"></i>
+              <span id="unreadBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">0</span>
+            </button>
+
+            <!-- Notifications Menu -->
+            <div id="notificationMenu" class="hidden absolute right-0 mt-3 w-80 sm:w-96 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-2xl">
+              <div class="p-4 border-b border-zinc-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-white">Live Activity & Notifications</h3>
+                  <span id="notifCount" class="text-[10px] bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono">0 events</span>
+                </div>
+                <button onclick="clearNotifications()" class="text-xs text-zinc-400 hover:text-red-400 transition">Clear</button>
+              </div>
+              <div id="notificationList" class="max-h-80 overflow-y-auto divide-y divide-zinc-800/50">
+                <div class="p-6 text-center text-xs text-zinc-500">
+                  <i class="fa-regular fa-bell-slash text-xl mb-2 text-zinc-600 block"></i>
+                  No new notifications yet
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Superadmin Badge Pill -->
+          <div id="superadminHeaderPill" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+            <i class="fa-solid fa-crown text-amber-400"></i>
+            <span>Superadmin Mode</span>
+          </div>
+
+        </div>
+      </header>
+
+      <!-- SCROLLABLE MAIN CONTENT AREA -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- ================================================================= -->
+        <!-- TAB 1: DASHBOARD OVERVIEW -->
+        <!-- ================================================================= -->
+        <div id="tab-dashboard-view" class="space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Platform Overview</h2>
+              <p class="text-xs sm:text-sm text-zinc-400 mt-0.5">Realtime platform metrics, authentication stream, and token usage.</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="switchTab('create-user')" class="superadmin-only hidden inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/30 transition">
+                <i class="fa-solid fa-user-plus"></i> Create New User
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Total Users</span>
+                <span class="w-9 h-9 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm"><i class="fa-solid fa-users"></i></span>
+              </div>
+              <p id="kpiTotalUsers" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                <i class="fa-solid fa-arrow-trend-up"></i> <span id="kpiNewUsersToday">0 new today</span>
+              </p>
+            </div>
+
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Estimated MRR</span>
+                <span class="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-dollar-sign"></i></span>
+              </div>
+              <p id="kpiMRR" class="text-3xl font-extrabold text-white mt-3">$0</p>
+              <p class="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                <i class="fa-solid fa-chart-line"></i> <span>+14.2% from last month</span>
+              </p>
+            </div>
+
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Pro & Enterprise</span>
+                <span class="w-9 h-9 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm"><i class="fa-solid fa-bolt"></i></span>
+              </div>
+              <p id="kpiPaidUsers" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-purple-300 mt-2 flex items-center gap-1">
+                <i class="fa-solid fa-shield-check"></i> <span id="kpiPaidPercentage">0% conversion rate</span>
+              </p>
+            </div>
+
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Live Logins Stream</span>
+                <span class="w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm"><i class="fa-solid fa-bolt-lightning"></i></span>
+              </div>
+              <p id="kpiLiveSessions" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-amber-400 mt-2 flex items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> <span>Realtime events recorded</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="glass-card p-5 rounded-2xl lg:col-span-2">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-base font-bold text-white">User Growth & Login Activity</h3>
+                  <p class="text-xs text-zinc-400">Weekly auth telemetry trends</p>
+                </div>
+                <span class="text-xs bg-zinc-900 text-zinc-300 px-2.5 py-1 rounded-full border border-zinc-800">Last 7 Days</span>
+              </div>
+              <div class="h-64">
+                <canvas id="growthChart"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="mb-4">
+                <h3 class="text-base font-bold text-white">Tier Distribution</h3>
+                <p class="text-xs text-zinc-400">Current tier breakdown</p>
+              </div>
+              <div class="h-56 flex items-center justify-center">
+                <canvas id="tierChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity & Permissions Matrix -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span> Live User Telemetry
+                </h3>
+                <button onclick="switchTab('history')" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium">View All &rarr;</button>
+              </div>
+              <div id="dashboardRecentLogins" class="space-y-3 max-h-72 overflow-y-auto pr-1"></div>
+            </div>
+
+            <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+              <div>
+                <h3 class="text-base font-bold text-white mb-2">Access & Permissions Matrix</h3>
+                <p class="text-xs text-zinc-400 mb-4">Role-based controls & security parameters configured for this Firebase node.</p>
+                
+                <div class="space-y-3">
+                  <div class="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-crown"></i>
+                      </div>
+                      <div>
+                        <p class="text-xs font-bold text-zinc-200">Superadmin Privilege</p>
+                        <p class="text-[11px] text-zinc-400">Full CRUD, User Management, and Billing assignment</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-md">ACTIVE</span>
+                  </div>
+
+                  <div class="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-shield"></i>
+                      </div>
+                      <div>
+                        <p class="text-xs font-bold text-zinc-200">Standard Users & Admins</p>
+                        <p class="text-[11px] text-zinc-400">Read telemetry, view personal history & subscription</p>
+                      </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-md">LIMITED</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-500">
+                <span>Firebase: <strong class="text-zinc-400">eburon-bd040</strong></span>
+                <span class="font-mono">RTDB Europe-West1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 2: USERS MANAGEMENT (CRUD) -->
+        <!-- ================================================================= -->
+        <div id="tab-users-view" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Users Management</h2>
+              <p class="text-xs sm:text-sm text-zinc-400 mt-0.5">Manage user credentials, assign roles, view audit profiles, and control platform access. Realtime sync from <code class="bg-zinc-900 px-1 py-0.5 rounded text-indigo-300">auth.html</code>.</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="switchTab('create-user')" class="superadmin-only hidden inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/30 transition">
+                <i class="fa-solid fa-user-plus"></i> Create New User
+              </button>
+              <button onclick="openCreateUserModal()" class="superadmin-only hidden inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded-xl text-xs font-semibold transition" title="Quick edit modal">
+                <i class="fa-solid fa-pen-to-square"></i> Quick Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter & Search Toolbar -->
+          <div class="glass-card p-4 rounded-2xl flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div class="relative w-full sm:w-80">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-zinc-500 text-xs"></i>
+              <input type="text" id="userSearchInput" oninput="filterUsersTable()" placeholder="Search by name, email, or role..." class="w-full bg-black/60 border border-zinc-800 rounded-xl py-2 pl-9 pr-4 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+              <select id="roleFilterSelect" onchange="filterUsersTable()" class="bg-black/60 border border-zinc-800 text-xs text-zinc-300 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 flex-1 sm:flex-initial">
+                <option value="ALL">All Roles</option>
+                <option value="superadmin">Superadmin</option>
+                <option value="admin">Admin</option>
+                <option value="member">Member</option>
+              </select>
+              <select id="planFilterSelect" onchange="filterUsersTable()" class="bg-black/60 border border-zinc-800 text-xs text-zinc-300 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 flex-1 sm:flex-initial">
+                <option value="ALL">All Plans</option>
+                <option value="Enterprise">Enterprise</option>
+                <option value="Pro">Pro</option>
+                <option value="Starter">Starter</option>
+                <option value="Free">Free</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Read-only Warning Banner -->
+          <div id="readOnlyWarning" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-3">
+            <i class="fa-solid fa-lock text-base"></i>
+            <span>You are logged in with view privileges. Only Superadmins have full CRUD access (create, edit, delete users and change subscription tiers).</span>
+          </div>
+
+          <!-- Users Table -->
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-zinc-300">
+                <thead class="bg-black/80 text-zinc-400 uppercase tracking-wider font-semibold border-b border-zinc-800">
+                  <tr>
+                    <th class="px-6 py-4">User</th>
+                    <th class="px-6 py-4">Role</th>
+                    <th class="px-6 py-4">Subscription</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">Last Login</th>
+                      <th class="px-6 py-4">Credits</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody" class="divide-y divide-zinc-800/60"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 3: USER HISTORY & AUDIT LOGS -->
+        <!-- ================================================================= -->
+        <div id="tab-history-view" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Activity History & Audit Logs</h2>
+              <p class="text-xs sm:text-sm text-zinc-400 mt-0.5">Realtime ledger of sign-ins, sign-ups, profile modifications, and billing actions.</p>
+            </div>
+            <button onclick="clearAllAuditLogs()" class="superadmin-only hidden px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition">
+              <i class="fa-solid fa-trash-can mr-1"></i> Purge Logs
+            </button>
+          </div>
+
+          <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
+            <div class="relative w-full sm:w-80">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-zinc-500 text-xs"></i>
+              <input type="text" id="logSearchInput" oninput="renderAuditLogs()" placeholder="Filter logs by email, action, or IP..." class="w-full bg-black/60 border border-zinc-800 rounded-xl py-2 pl-9 pr-4 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <span class="text-xs text-zinc-400 hidden sm:inline">Auto-synced via Firebase</span>
+          </div>
+
+          <div class="glass-card p-6 rounded-2xl">
+            <div id="auditLogsContainer" class="space-y-4"></div>
+          </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 4: TOKEN BILLING (Replaces old Pricing Plans) -->
+        <!-- ================================================================= -->
+        <div id="tab-billing-view" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Token Billing & Credits Ledger</h2>
+              <p class="text-xs sm:text-sm text-zinc-400 mt-0.5">Realtime token consumption per user — credits allocated and spent are controlled by Superadmins only. Syncs instantly from <code class="bg-zinc-900 px-1.5 py-0.5 rounded text-indigo-300">auth.html</code> & DualTranslator app.</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="switchTab('create-user')" class="superadmin-only hidden inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/30 transition">
+                <i class="fa-solid fa-user-plus"></i> Create User with Credits
+              </button>
+            </div>
+          </div>
+
+          <!-- Token KPIs -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Total Credits Allocated</span>
+                <span class="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-coins"></i></span>
+              </div>
+              <p id="kpiTotalCredits" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-zinc-500 mt-2">Sum of all users' credits</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Avg Credits / User</span>
+                <span class="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm"><i class="fa-solid fa-calculator"></i></span>
+              </div>
+              <p id="kpiAvgCredits" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-zinc-500 mt-2">Realtime average</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Low Credits (&lt;10k)</span>
+                <span class="w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm"><i class="fa-solid fa-triangle-exclamation"></i></span>
+              </div>
+              <p id="kpiLowCredits" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-amber-400 mt-2">Users needing top-up</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Free Tier Users</span>
+                <span class="w-9 h-9 rounded-full bg-zinc-700/50 text-zinc-300 flex items-center justify-center text-sm"><i class="fa-solid fa-user-group"></i></span>
+              </div>
+              <p id="kpiFreeTier" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-zinc-500 mt-2"><span id="paidTierCount">0</span> paid tier</p>
+            </div>
+          </div>
+
+          <!-- Token Ledger Table (replaces old invoices + pricing) -->
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-ledger text-emerald-400"></i> Credits Ledger — Per User</h3>
+                <p class="text-xs text-zinc-500 mt-1">Superadmin can edit credits, set token allowances, and deduct/add instantly. Realtime sync to auth.html & app.</p>
+              </div>
+              <div class="flex gap-2">
+                <div class="relative w-72">
+                  <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-zinc-500 text-xs"></i>
+                  <input id="billingSearchInput" oninput="renderBillingTable()" placeholder="Search email, name..." class="w-full bg-black/60 border border-zinc-800 rounded-xl py-2 pl-9 pr-4 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500">
+                </div>
+                <button onclick="renderBillingTable()" class="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl text-xs text-zinc-300"><i class="fa-solid fa-rotate"></i></button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-zinc-300">
+                <thead class="bg-black/80 text-zinc-400 uppercase tracking-wider font-semibold border-b border-zinc-800">
+                  <tr>
+                    <th class="px-4 py-3">User</th>
+                    <th class="px-4 py-3">Plan / Role</th>
+                    <th class="px-4 py-3">Total Credits</th>
+                    <th class="px-4 py-3">Used (Est.)</th>
+                    <th class="px-4 py-3">Remaining</th>
+                    <th class="px-4 py-3">App</th>
+                    <th class="px-4 py-3">Last Active</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="billingTableBody" class="divide-y divide-zinc-800/60"></tbody>
+              </table>
+            </div>
+            <div class="p-3 bg-zinc-950/60 border-t border-zinc-800 text-[11px] text-zinc-500 flex items-center justify-between">
+              <span><i class="fa-solid fa-circle-info mr-1"></i> Credits are set by Superadmins. Tokens spent = initial allocation (100k default) - current remaining. Edit to top-up or deduct.</span>
+              <span class="font-mono">RTDB: users/{uid}/credits</span>
+            </div>
+          </div>
+
+          <!-- Keep legacy invoices table for reference but now collapsed / hidden: we reuse billingTableBody for token ledger -->
+          <div class="hidden">
+            <table><tbody id="invoicesTableBody"></tbody></table>
+          </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB: USER TRANSLATIONS / HISTORY TRACKING -->
+        <!-- ================================================================= -->
+        <div id="tab-translations-view" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Translation History</h2>
+              <p class="text-xs sm:text-sm text-zinc-400 mt-0.5">Every completed voice-exchange translation saved by users to <code class="bg-zinc-900 px-1 py-0.5 rounded text-indigo-300">users/{uid}/translations</code>. Also mirrored to <code class="bg-zinc-900 px-1 py-0.5 rounded text-indigo-300">activity_logs</code> for the audit timeline.</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="loadTranslations(true)" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/20 transition">
+                <i class="fa-solid fa-rotate"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Total Translations</span>
+                <span class="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-language"></i></span>
+              </div>
+              <p id="kpiTotalTranslations" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-emerald-400 mt-2 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> <span id="kpiTranslationUsers">0 users with history</span></p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Source Words</span>
+                <span class="w-9 h-9 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm"><i class="fa-solid fa-font"></i></span>
+              </div>
+              <p id="kpiSourceWords" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-zinc-400 mt-2">Total spoken input captured</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Last Translation</span>
+                <span class="w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm"><i class="fa-solid fa-clock"></i></span>
+              </div>
+              <p id="kpiLastTranslation" class="text-3xl font-extrabold text-white mt-3 truncate">—</p>
+              <p class="text-xs text-zinc-400 mt-2">Most recent activity</p>
+            </div>
+          </div>
+
+          <!-- Filter & Search Toolbar -->
+          <div class="glass-card p-4 rounded-2xl flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div class="relative w-full sm:w-80">
+              <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-zinc-500 text-xs"></i>
+              <input type="text" id="translSearchInput" oninput="renderTranslationsTable()" placeholder="Search user, source, or translation..." class="w-full bg-black/60 border border-zinc-800 rounded-xl py-2 pl-9 pr-4 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+              <select id="translLangFilter" onchange="renderTranslationsTable()" class="bg-black/60 border border-zinc-800 text-xs text-zinc-300 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 flex-1 sm:flex-initial">
+                <option value="ALL">All Language Pairs</option>
+              </select>
+              <select id="translUserFilter" onchange="renderTranslationsTable()" class="bg-black/60 border border-zinc-800 text-xs text-zinc-300 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 flex-1 sm:flex-initial">
+                <option value="ALL">All Users</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Translations Table -->
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-zinc-300">
+                <thead class="bg-black/80 text-zinc-400 uppercase tracking-wider font-semibold border-b border-zinc-800">
+                  <tr>
+                    <th class="px-6 py-4">User</th>
+                    <th class="px-6 py-4">Language Pair</th>
+                    <th class="px-6 py-4">Spoken (Source)</th>
+                    <th class="px-6 py-4">Translation</th>
+                    <th class="px-6 py-4">When</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="translationsTableBody" class="divide-y divide-zinc-800/60"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 5: CREATE NEW USERS (Superadmin Only) — Enhanced with Set/Update Form -->
+        <!-- ================================================================= -->
+        <div id="tab-create-user-view" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Create & Set Users</h2>
+            </div>
+            <div class="flex gap-2">
+              <span class="text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-3 py-1.5 rounded-full flex items-center gap-1.5"><span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> Realtime RTDB Sync</span>
+            </div>
+          </div>
+
+          <!-- Read-only warning if not superadmin -->
+          <div id="createUserReadOnlyWarn" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-3">
+            <i class="fa-solid fa-lock text-base"></i>
+            <span>Only Superadmins (master@eburon.ai) can create/set users from admin. You have view-only access.</span>
+          </div>
+
+          <!-- Top: Two columns — Create Form + Side Info -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main CREATE Form -->
+            <div class="lg:col-span-2 glass-card p-6 rounded-2xl">
+              <div class="flex items-center gap-2 mb-4">
+                <span class="w-8 h-8 rounded-full bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xs"><i class="fa-solid fa-user-plus"></i></span>
+                <div>
+                  <h3 class="text-base font-bold text-white">Create New User (Auth + RTDB)</h3>
+                  <p class="text-[11px] text-zinc-500">Creates Firebase Auth account via secondary app — you stay logged in. Compatible with sample export.</p>
+                </div>
+              </div>
+              <form id="adminCreateUserForm" onsubmit="handleAdminCreateUser(event)" class="space-y-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Full Name *</label>
+                    <div class="relative">
+                      <i class="fa-solid fa-user absolute left-3.5 top-3.5 text-zinc-500 text-xs"></i>
+                      <input type="text" id="createName" required placeholder="Jane Doe" class="w-full bg-black/70 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Email Address *</label>
+                    <div class="relative">
+                      <i class="fa-regular fa-envelope absolute left-3.5 top-3.5 text-zinc-500 text-xs"></i>
+                      <input type="email" id="createEmail" required placeholder="user@company.com" class="w-full bg-black/70 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Password *</label>
+                    <div class="relative">
+                      <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-zinc-500 text-xs"></i>
+                      <input type="password" id="createPassword" required minlength="6" placeholder="Min 6 chars" class="w-full bg-black/70 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-10 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition">
+                      <button type="button" onclick="toggleCreatePassword()" class="absolute right-2 top-2 w-8 h-8 bg-zinc-900 rounded-lg text-zinc-400 hover:text-white flex items-center justify-center"><i id="createPassEye" class="fa-regular fa-eye text-xs"></i></button>
+                    </div>
+                    <p class="text-[11px] text-zinc-500 mt-1.5">Will create Firebase Auth account instantly using secondary app (no logout).</p>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Confirm Password *</label>
+                    <div class="relative">
+                      <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-zinc-500 text-xs"></i>
+                      <input type="password" id="createConfirmPassword" required placeholder="Repeat password" class="w-full bg-black/70 border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Role</label>
+                    <select id="createRole" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500">
+                      <option value="member">Member (user→member)</option>
+                      <option value="admin">Admin</option>
+                      <option value="superadmin">Superadmin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Plan / Tier</label>
+                    <select id="createPlan" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500">
+                      <option value="Free">Free (free→Free)</option>
+                      <option value="Starter">Starter</option>
+                      <option value="Pro">Pro</option>
+                      <option value="Enterprise">Enterprise</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Status</label>
+                    <select id="createStatus" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500">
+                      <option value="Active">Active (active→Active)</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Credits (tokens)</label>
+                    <input type="number" id="createCredits" value="100000" min="0" step="1000" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">App Name</label>
+                    <input type="text" id="createAppname" value="DualTranslator" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Country</label>
+                    <input type="text" id="createCountry" value="Philippines" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1.5">Phone (optional)</label>
+                    <input type="text" id="createPhone" placeholder="+63..." class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500">
+                  </div>
+                </div>
+
+                <div id="createUserError" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                  <i class="fa-solid fa-triangle-exclamation"></i><span id="createUserErrorText"></span>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                  <button type="button" onclick="switchTab('users')" class="px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-sm font-medium transition hover:bg-zinc-900">Cancel</button>
+                  <button type="submit" id="createUserSubmitBtn" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">
+                    <i class="fa-solid fa-bolt"></i> Create User + Auth Account
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Side Info / Live Preview -->
+            <div class="space-y-4">
+              <div class="glass-card p-5 rounded-2xl">
+                <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2"><i class="fa-solid fa-shield-check text-emerald-400"></i> How it works</h3>
+                <ol class="space-y-2 text-xs text-zinc-400 list-decimal list-inside">
+                  <li>Form creates Firebase Auth user via secondary app — you stay logged in.</li>
+                  <li>Writes <code class="bg-zinc-900 px-1 py-0.5 rounded">users/{uid}</code> with <code>credits</code>, <code>Appname</code>, <code>app_name</code> matching sample export.</li>
+                  <li>Normalizes legacy <code>role:user→member</code>, <code>plan:free→Free</code>, <code>status:active→Active</code>.</li>
+                  <li>Appends to <code>activity_logs</code> & <code>notifications</code> → realtime toast.</li>
+                </ol>
+              </div>
+
+              <div class="glass-card p-5 rounded-2xl border-emerald-500/20 bg-gradient-to-b from-emerald-950/10 to-black">
+                <h3 class="text-sm font-bold text-white mb-2">Realtime Stats</h3>
+                <div class="space-y-3 text-xs">
+                  <div class="flex justify-between"><span class="text-zinc-400">Current users</span><span id="createTabTotalUsers" class="text-white font-bold">0</span></div>
+                  <div class="flex justify-between"><span class="text-zinc-400">Total credits allocated</span><span id="createTabTotalCredits" class="text-emerald-300 font-bold">0</span></div>
+                  <div class="flex justify-between"><span class="text-zinc-400">Avg credits</span><span id="createTabAvgCredits" class="text-white font-mono">0</span></div>
+                  <div class="flex justify-between"><span class="text-zinc-400">Sample keys handled</span><span class="text-zinc-300">pushId + uid</span></div>
+                </div>
+              </div>
+
+              <div class="glass-card p-5 rounded-2xl">
+                <h3 class="text-sm font-bold text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Recent Creations</h3>
+                <div id="recentCreationsList" class="space-y-2 max-h-48 overflow-y-auto"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom: SET / UPDATE Existing User & Credits -->
+          <div class="glass-card p-6 rounded-2xl border-indigo-500/20">
+            <div class="flex items-center gap-2 mb-5">
+              <span class="w-8 h-8 rounded-full bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-xs"><i class="fa-solid fa-sliders"></i></span>
+              <div>
+                <h3 class="text-base font-bold text-white">Set / Update Existing User & Credits (Superadmin)</h3>
+                <p class="text-[11px] text-zinc-500">Select any user from RTDB (including sample export <code>-P--E9s...</code> or <code>vTa1J8i...</code>) and update credits, role, plan, status. Realtime sync to <code>auth.html</code> and Token Billing.</p>
+              </div>
+            </div>
+
+            <form id="adminSetUserForm" onsubmit="handleSetExistingUser(event)" class="space-y-5">
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="lg:col-span-2">
+                  <label class="block text-xs font-medium text-zinc-300 mb-1.5">Select User (realtime from RTDB — sample export compatible)</label>
+                  <div class="flex gap-2">
+                    <div class="relative flex-1">
+                      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-zinc-500 text-xs"></i>
+                      <select id="setUserSelect" onchange="onSetUserSelectChange()" class="w-full bg-black border border-zinc-800 rounded-xl py-2.5 pl-9 pr-4 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                        <option value="">— Choose user —</option>
+                      </select>
+                    </div>
+                    <button type="button" onclick="populateSetUserDropdown()" class="px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 hover:bg-zinc-800"><i class="fa-solid fa-rotate"></i></button>
+                  </div>
+                  <p class="text-[11px] text-zinc-500 mt-1.5">Dropdown populated from <code>users</code> node — includes push IDs like <code>-P--E9sThjdgGKTxgQt9</code> and auth UIDs like <code>vTa1J8iMoX...</code></p>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-zinc-300 mb-1.5">Quick Actions</label>
+                  <div class="flex gap-2">
+                    <button type="button" onclick="quickSetCreditsAdd(10000)" class="flex-1 px-3 py-2 bg-emerald-600/20 border border-emerald-500/20 text-emerald-300 rounded-xl text-xs hover:bg-emerald-600/30">+10k</button>
+                    <button type="button" onclick="quickSetCreditsAdd(50000)" class="flex-1 px-3 py-2 bg-emerald-600/20 border border-emerald-500/20 text-emerald-300 rounded-xl text-xs hover:bg-emerald-600/30">+50k</button>
+                    <button type="button" onclick="quickSetCreditsAdd(-5000)" class="flex-1 px-3 py-2 bg-red-600/20 border border-red-500/20 text-red-300 rounded-xl text-xs hover:bg-red-600/30">-5k</button>
+                    <button type="button" onclick="quickSetCreditsAdd(-20000)" class="flex-1 px-3 py-2 bg-red-600/20 border border-red-500/20 text-red-300 rounded-xl text-xs hover:bg-red-600/30">-20k</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="setUserDetails" class="hidden space-y-4 p-4 rounded-xl bg-black/60 border border-zinc-800">
+                <div class="flex items-center gap-3">
+                  <img id="setUserAvatar" src="" class="w-12 h-12 rounded-full border border-zinc-700 object-cover">
+                  <div>
+                    <p id="setUserName" class="text-sm font-bold text-white">—</p>
+                    <p id="setUserEmail" class="text-xs text-zinc-400">—</p>
+                    <p id="setUserUid" class="text-[10px] text-zinc-500 font-mono">uid: —</p>
+                  </div>
+                  <span id="setUserCurrentCredits" class="ml-auto px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 text-xs font-bold">0 credits</span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Credits (tokens)</label>
+                    <input type="number" id="setCredits" min="0" step="1000" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Initial Credits</label>
+                    <input type="number" id="setInitialCredits" min="0" step="1000" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-400 focus:outline-none focus:border-indigo-500" readonly>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Used (est.)</label>
+                    <input type="number" id="setCreditsUsed" min="0" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-500" readonly>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Appname</label>
+                    <input type="text" id="setAppname" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Role</label>
+                    <select id="setRole" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                      <option value="member">Member</option>
+                      <option value="admin">Admin</option>
+                      <option value="superadmin">Superadmin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Plan</label>
+                    <select id="setPlan" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                      <option value="Free">Free</option>
+                      <option value="Starter">Starter</option>
+                      <option value="Pro">Pro</option>
+                      <option value="Enterprise">Enterprise</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Status</label>
+                    <select id="setStatus" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                      <option value="Active">Active</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Country</label>
+                    <input type="text" id="setCountry" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Phone</label>
+                    <input type="text" id="setPhone" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Created</label>
+                    <input type="text" id="setCreated" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-500" readonly>
+                  </div>
+                </div>
+              </div>
+
+              <div id="setUserError" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i><span id="setUserErrorText"></span>
+              </div>
+              <div id="setUserSuccess" class="hidden p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <i class="fa-solid fa-circle-check"></i><span id="setUserSuccessText"></span>
+              </div>
+
+              <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('setUserDetails').classList.add('hidden'); document.getElementById('setUserSelect').value=''" class="px-4 py-2.5 rounded-xl border border-zinc-800 text-zinc-300 text-xs">Clear</button>
+                <button type="submit" id="setUserSubmitBtn" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-2">
+                  <i class="fa-solid fa-floppy-disk"></i> Save Changes (Realtime)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 6: NOTIFICATIONS PAGE — Fetch all users realtime + create notifications -->
+        <!-- ================================================================= -->
+        <div id="tab-notifications-view" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Notifications Center</h2>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="clearAllNotificationsRTDB()" class="superadmin-only hidden px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition">
+                <i class="fa-solid fa-trash-can mr-1"></i> Purge All
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Row for notifications -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Total Notifications</span>
+                <span class="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm"><i class="fa-solid fa-bell"></i></span>
+              </div>
+              <p id="kpiTotalNotifs" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-zinc-500 mt-2">Realtime count</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Live Users Fetched</span>
+                <span class="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-users"></i></span>
+              </div>
+              <p id="kpiNotifUsers" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-zinc-500 mt-2">From users RTDB (realtime)</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Unread / Recent</span>
+                <span class="w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm"><i class="fa-solid fa-bolt"></i></span>
+              </div>
+              <p id="kpiNotifUnread" class="text-3xl font-extrabold text-white mt-3">0</p>
+              <p class="text-xs text-zinc-500 mt-2">Last 24h</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left: Users realtime list + create notification form -->
+            <div class="space-y-6">
+              <!-- Create Notification Form -->
+              <div class="glass-card p-5 rounded-2xl border-indigo-500/20">
+                <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2"><i class="fa-solid fa-paper-plane text-indigo-400"></i> Create Notification (Realtime)</h3>
+                <form id="createNotifForm" onsubmit="handleCreateNotification(event)" class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Target User (optional — leave blank for broadcast)</label>
+                    <select id="notifTargetUser" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                      <option value="">📢 Broadcast to all users</option>
+                    </select>
+                    <p class="text-[10px] text-zinc-500 mt-1">Dropdown is realtime — includes hidden superadmins for management, populated from users RTDB</p>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-zinc-300 mb-1">Type</label>
+                      <select id="notifType" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                        <option value="info">Info (bell)</option>
+                        <option value="auth">Auth (green)</option>
+                        <option value="success">Success</option>
+                        <option value="superadmin">Superadmin (crown)</option>
+                        <option value="warning">Warning</option>
+                        <option value="billing">Billing/Credits</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-zinc-300 mb-1">Title *</label>
+                      <input type="text" id="notifTitle" required placeholder="e.g. Credits topped up" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-zinc-300 mb-1">Message *</label>
+                    <textarea id="notifMessage" required rows="3" placeholder="Detailed message that will appear in dropdown + notifications page..." class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                  </div>
+                  <div id="notifFormError" class="hidden p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs"></div>
+                  <div id="notifFormSuccess" class="hidden p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs"></div>
+                  <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="document.getElementById('createNotifForm').reset()" class="px-4 py-2 rounded-xl border border-zinc-800 text-zinc-400 text-xs">Clear</button>
+                    <button type="submit" id="notifSubmitBtn" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-2"><i class="fa-solid fa-bolt"></i> Push Notification (Realtime)</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Realtime Users List for Notifications -->
+              <div class="glass-card p-5 rounded-2xl">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-users text-emerald-400"></i> All Users (Realtime Fetch)</h3>
+                  <span id="notifUsersCount" class="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">0 users</span>
+                </div>
+                <div class="relative mb-3">
+                  <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-zinc-500 text-xs"></i>
+                  <input id="notifUsersSearch" oninput="renderNotifUsersList()" placeholder="Search email, name, role..." class="w-full bg-black/60 border border-zinc-800 rounded-xl py-2 pl-9 pr-4 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div id="notifUsersList" class="space-y-2 max-h-[380px] overflow-y-auto pr-1"></div>
+                <div class="mt-3 pt-3 border-t border-zinc-800 text-[10px] text-zinc-500">
+                  Fetched from <code class="bg-zinc-900 px-1 rounded">users</code> RTDB node, normalized for sample export (<code>-P--E9s...</code> + <code>vTa1J8i...</code>), superadmins included for management.
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Notifications Feed (realtime) -->
+            <div class="lg:col-span-2 glass-card p-5 rounded-2xl flex flex-col">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-bell text-indigo-400"></i> Live Notifications Feed</h3>
+                  <p class="text-xs text-zinc-500 mt-1">Every new user from <code>auth.html</code>, credit change, or manual push appears here instantly via <code>notifications</code> RTDB <code>child_added</code></p>
+                </div>
+                <div class="flex gap-2">
+                  <div class="relative w-48">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-zinc-500 text-[10px]"></i>
+                    <input id="notifFeedSearch" oninput="renderNotificationsPage()" placeholder="Filter title, email..." class="w-full bg-black/60 border border-zinc-800 rounded-xl py-1.5 pl-7 pr-3 text-[11px] text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500">
+                  </div>
+                  <select id="notifTypeFilter" onchange="renderNotificationsPage()" class="bg-black border border-zinc-800 rounded-xl px-2 py-1.5 text-[11px] text-zinc-300">
+                    <option value="ALL">All Types</option>
+                    <option value="auth">Auth</option>
+                    <option value="superadmin">Superadmin</option>
+                    <option value="billing">Billing</option>
+                    <option value="info">Info</option>
+                    <option value="success">Success</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="notificationsPageList" class="space-y-3 flex-1 overflow-y-auto max-h-[720px] pr-1"></div>
+
+              <div class="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500">
+                <span><i class="fa-solid fa-circle-info mr-1"></i> Notifications are stored at <code class="bg-zinc-900 px-1 rounded">notifications/{pushId}</code> with fields: title, message, email, timestamp, type, targetUid (optional)</span>
+                <span id="notifLastUpdated" class="font-mono">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CREATE / EDIT USER -->
+  <!-- ========================================================================= -->
+  <div id="userModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-zinc-950 border border-zinc-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-4 border-b border-zinc-800">
+        <h3 id="userModalTitle" class="text-lg font-bold text-white">Create New User</h3>
+        <button onclick="closeUserModal()" class="text-zinc-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-4 mt-4">
+        <input type="hidden" id="modalUserId" value="" />
+        
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Full Name</label>
+          <input type="text" id="modalUserName" required placeholder="Jane Doe" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Email Address</label>
+          <input type="email" id="modalUserEmail" required placeholder="user@company.com" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1">Role</label>
+            <select id="modalUserRole" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+              <option value="superadmin">Superadmin</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1">Subscription Tier</label>
+            <select id="modalUserPlan" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+              <option value="Free">Free ($0)</option>
+              <option value="Starter">Starter ($29/mo)</option>
+              <option value="Pro">Pro ($99/mo)</option>
+              <option value="Enterprise">Enterprise ($299/mo)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-zinc-300 mb-1">Account Status</label>
+          <select id="modalUserStatus" class="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500">
+            <option value="Active">Active</option>
+            <option value="Pending">Pending Verification</option>
+            <option value="Suspended">Suspended</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+          <button type="button" onclick="closeUserModal()" class="px-4 py-2 text-xs font-medium text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-900 transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-md shadow-indigo-600/30 transition">Save User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: SINGLE USER HISTORY DRAWER -->
+  <!-- ========================================================================= -->
+  <div id="userHistoryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-zinc-950 border border-zinc-800 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-zinc-800">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-fingerprint text-indigo-400"></i>
+            User Activity Dossier
+          </h3>
+          <p id="historyModalUserSubtitle" class="text-xs text-zinc-400">Showing all records for user</p>
+        </div>
+        <button onclick="closeUserHistoryModal()" class="text-zinc-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div id="singleUserHistoryList" class="flex-1 overflow-y-auto py-4 space-y-3"></div>
+      
+      <div class="pt-4 border-t border-zinc-800 flex justify-end">
+        <button onclick="closeUserHistoryModal()" class="px-4 py-2 text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-zinc-200 rounded-xl transition">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: SINGLE USER TRANSLATION HISTORY -->
+  <!-- ========================================================================= -->
+  <div id="translationUserModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-zinc-950 border border-zinc-800 w-full max-w-3xl rounded-3xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-zinc-800">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-language text-emerald-400"></i>
+            User Translation History
+          </h3>
+          <p id="translationModalUserSubtitle" class="text-xs text-zinc-400">Showing translations for user</p>
+        </div>
+        <button onclick="closeTranslationUserModal()" class="text-zinc-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div id="singleUserTranslationList" class="flex-1 overflow-y-auto py-4 space-y-3"></div>
+
+      <div class="pt-4 border-t border-zinc-800 flex justify-end">
+        <button onclick="closeTranslationUserModal()" class="px-4 py-2 text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-zinc-200 rounded-xl transition">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT: FIREBASE INIT & APPLICATION LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    // Firebase creds are injected from the app env at serve/build time
+    // (vite.config.ts replaces __FIREBASE_*__ tokens with .env.local values).
+    // Fallback values below only kick in when the file is opened directly
+    // (no injection), so it never ships with broken tokens.
+    const FIREBASE_CRED_FALLBACK = {
+      __FIREBASE_API_KEY__: "AIzaSyAQduaHGf6FI5M89wEQmQ35K5Eo04A6WnU",
+      __FIREBASE_AUTH_DOMAIN__: "eburon-bd040.firebaseapp.com",
+      __FIREBASE_DATABASE_URL__: "https://eburon-bd040-default-rtdb.europe-west1.firebasedatabase.app",
+      __FIREBASE_PROJECT_ID__: "eburon-bd040",
+      __FIREBASE_STORAGE_BUCKET__: "eburon-bd040.firebasestorage.app",
+      __FIREBASE_MESSAGING_SENDER_ID__: "30841056766",
+      __FIREBASE_APP_ID__: "1:30841056766:web:ec5096088ecd16b237e4af",
+      __FIREBASE_MEASUREMENT_ID__: "G-GRN6HYJNC5"
+    };
+    const firebaseConfig = {
+      apiKey: "__FIREBASE_API_KEY__",
+      authDomain: "__FIREBASE_AUTH_DOMAIN__",
+      databaseURL: "__FIREBASE_DATABASE_URL__",
+      projectId: "__FIREBASE_PROJECT_ID__",
+      storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+      messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+      appId: "__FIREBASE_APP_ID__",
+      measurementId: "__FIREBASE_MEASUREMENT_ID__"
+    };
+    Object.keys(firebaseConfig).forEach((k) => {
+      const v = firebaseConfig[k];
+      if (typeof v === 'string' && v.startsWith('__FIREBASE_')) {
+        firebaseConfig[k] = FIREBASE_CRED_FALLBACK[v] || v;
+      }
+    });
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const SUPERADMIN_EMAILS = ["master@eburon.ai", "martijn@eburon.ai"];
+    // Keep backward compat constant for any lingering checks
+    const SUPERADMIN_EMAIL = SUPERADMIN_EMAILS[0];
+
+    function isSuperAdminEmail(email) {
+      if (!email) return false;
+      const lower = String(email).toLowerCase().trim();
+      return SUPERADMIN_EMAILS.some(s => s.toLowerCase() === lower);
+    }
+
+    let currentUser = null;
+    let isSuperAdmin = false;
+    let usersData = {};
+    let auditLogs = [];
+    let notificationsList = [];
+    let growthChartInstance = null;
+    let tierChartInstance = null;
+
+    // --------------------------------------------------------------------------
+    // AUTHENTICATION HANDLERS
+    // --------------------------------------------------------------------------
+
+    async function handleEmailAuth(e) {
+      e.preventDefault();
+      hideAuthError();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (!isSuperAdminEmail(email)) {
+        showAuthError("Access denied. Only master@eburon.ai and martijn@eburon.ai can access the Admin Portal.");
+        return;
+      }
+
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        await registerUserSession(userCredential.user, "Email Sign In");
+      } catch (err) {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          showAuthError("Invalid credentials. If this is a new account, click 'Sign Up'.");
+        } else {
+          showAuthError(err.message);
+        }
+      }
+    }
+
+    async function handleSignUp() {
+      hideAuthError();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (!email || !password) {
+        showAuthError("Please fill in both Email and Password to sign up.");
+        return;
+      }
+
+      if (!isSuperAdminEmail(email)) {
+        showAuthError("Access denied. Sign-ups are restricted to master@eburon.ai and martijn@eburon.ai only.");
+        return;
+      }
+
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        await registerUserSession(userCredential.user, "New User Registration (Sign Up)");
+        showToast("Welcome!", "Your account has been created successfully.", "success");
+      } catch (err) {
+        showAuthError(err.message);
+      }
+    }
+
+    async function handleGoogleSignIn() {
+      hideAuthError();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        const userCredential = await auth.signInWithPopup(provider);
+        const fbUser = userCredential.user;
+        if (!isSuperAdminEmail(fbUser.email)) {
+          showAuthError(`Access denied for ${fbUser.email}. Only master@eburon.ai and martijn@eburon.ai can access the Admin Portal.`);
+          await auth.signOut().catch(() => {});
+          return;
+        }
+        await registerUserSession(fbUser, "Google OAuth Sign In");
+      } catch (err) {
+        showAuthError(err.message);
+      }
+    }
+
+    async function handleSignOut() {
+      try {
+        if (currentUser) {
+          await logActivity(currentUser.email, "User Logged Out", "Sign Out");
+        }
+        await auth.signOut();
+      } catch (e) {
+        console.error("Signout Error:", e);
+      } finally {
+        currentUser = null;
+        document.getElementById('accessDenied').classList.add('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('authScreen').classList.remove('hidden');
+        document.getElementById('authEmail').value = '';
+        document.getElementById('authPassword').value = '';
+        hideAuthError();
+        showToast("Signed Out", "You have been logged out.", "info");
+      }
+    }
+
+    function showAuthError(msg) {
+      const errBox = document.getElementById('authError');
+      const errText = document.getElementById('authErrorText');
+      errText.textContent = msg;
+      errBox.classList.remove('hidden');
+    }
+
+    function hideAuthError() {
+      document.getElementById('authError').classList.add('hidden');
+    }
+
+    // --------------------------------------------------------------------------
+    // USER TELEMETRY & NOTIFICATIONS
+    // --------------------------------------------------------------------------
+
+    async function registerUserSession(user, actionName) {
+      if (!user) return;
+      const uid = user.uid;
+      const email = user.email || "anonymous@eburon.ai";
+      const isSuper = isSuperAdminEmail(email);
+
+      const userRef = db.ref(`users/${uid}`);
+      const snapshot = await userRef.once('value');
+      const existing = snapshot.val() || {};
+
+      const userData = {
+        uid: uid,
+        email: email,
+        displayName: user.displayName || existing.displayName || email.split('@')[0],
+        photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(email)}&background=6366f1&color=fff`,
+        role: isSuper ? 'superadmin' : (existing.role || 'member'),
+        plan: isSuper ? 'Enterprise' : (existing.plan || 'Starter'),
+        status: existing.status || 'Active',
+        lastLogin: new Date().toISOString(),
+        createdAt: existing.createdAt || new Date().toISOString()
+      };
+
+      await userRef.set(userData);
+      await logActivity(email, actionName, "Auth");
+
+      await broadcastNotification({
+        title: actionName,
+        message: `${email} authenticated via ${actionName}`,
+        email: email,
+        timestamp: new Date().toISOString(),
+        type: isSuper ? 'superadmin' : 'auth'
+      });
+    }
+
+    async function logActivity(userEmail, action, category = "General") {
+      const logRef = db.ref('activity_logs').push();
+      const logEntry = {
+        id: logRef.key,
+        userEmail: userEmail,
+        action: action,
+        category: category,
+        timestamp: new Date().toISOString(),
+        ip: "192.168.1." + Math.floor(Math.random() * 250 + 1),
+        device: navigator.userAgent.includes("Mobile") ? "Mobile Device" : "Desktop Browser"
+      };
+      await logRef.set(logEntry);
+    }
+
+    async function broadcastNotification(notif) {
+      const notifRef = db.ref('notifications').push();
+      await notifRef.set({
+        id: notifRef.key,
+        ...notif
+      });
+    }
+
+    // --------------------------------------------------------------------------
+    // AUTH OBSERVER & REALTIME LISTENERS
+    // --------------------------------------------------------------------------
+
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      if (user) {
+        if (!isSuperAdminEmail(user.email)) {
+          document.getElementById('mainApp').classList.add('hidden');
+          document.getElementById('authScreen').classList.add('hidden');
+          document.getElementById('accessDenied').classList.remove('hidden');
+          document.getElementById('deniedEmail').textContent = `Signed in as ${user.email}`;
+          return;
+        }
+        isSuperAdmin = true;
+        document.getElementById('accessDenied').classList.add('hidden');
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+
+        document.getElementById('userName').textContent = user.displayName || user.email;
+        document.getElementById('userRoleBadge').textContent = isSuperAdmin ? "★ Superadmin" : "Standard User";
+        document.getElementById('userAvatar').src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=6366f1&color=fff`;
+
+        document.querySelectorAll('.superadmin-only').forEach(el => {
+          if (isSuperAdmin) el.classList.remove('hidden');
+          else el.classList.add('hidden');
+        });
+
+        const pill = document.getElementById('superadminHeaderPill');
+        if (isSuperAdmin) pill.classList.remove('hidden');
+        else pill.classList.add('hidden');
+
+        const warn = document.getElementById('readOnlyWarning');
+        if (!isSuperAdmin) warn.classList.remove('hidden');
+        else warn.classList.add('hidden');
+
+        const createWarn = document.getElementById('createUserReadOnlyWarn');
+        if (createWarn) {
+          if (!isSuperAdmin) createWarn.classList.remove('hidden');
+          else createWarn.classList.add('hidden');
+        }
+        const createForm = document.getElementById('adminCreateUserForm');
+        if (createForm) {
+          const fieldset = createForm.querySelectorAll('input, select, button');
+          // Keep form enabled but show error if non-superadmin tries to submit via JS guard
+          if (!isSuperAdmin) {
+            createForm.style.opacity = '0.6';
+            createForm.style.pointerEvents = 'none';
+          } else {
+            createForm.style.opacity = '1';
+            createForm.style.pointerEvents = 'auto';
+          }
+        }
+
+        initRealtimeListeners();
+        initCharts();
+      } else {
+        document.getElementById('accessDenied').classList.add('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('authScreen').classList.remove('hidden');
+        document.getElementById('authEmail').value = '';
+        document.getElementById('authPassword').value = '';
+      }
+    });
+
+    // --- REALTIME NORMALIZATION HELPERS (handle dual schema from auth.html + legacy sample export) ---
+    // Sample export reference: /Users/masterdee/Desktop/dual/eburon-bd040-default-rtdb-users-export.json
+    // Sample 1: { Appname, app_name, country, createdAt: 1786710372130, credits:100000, displayName:emil, email, phone, plan:"free", role:"user", status:"active", updatedAt }
+    // Sample 2: { approvedAt, country, created:"20 Jul 2026", displayName:Master, email:master@eburon.ai, phone, plan:"free", role:"user", signedIn:"20 Jul 2026", status:"active", updatedAt }
+    function tryParseDate(val) {
+      if (val == null) return null;
+      if (typeof val === 'number') {
+        // Support seconds vs ms: if value < 1e12 assume seconds, convert
+        const ms = val < 1e12 ? val * 1000 : val;
+        const d = new Date(ms);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+      }
+      if (typeof val === 'string') {
+        // Handle numeric string
+        if (!isNaN(Number(val)) && String(val).trim().match(/^\d+$/)) {
+          const num = Number(val);
+          const ms = num < 1e12 ? num * 1000 : num;
+          const d = new Date(ms);
+          if (!isNaN(d.getTime())) return d.toISOString();
+        }
+        // Try native Date parse (handles "20 Jul 2026", ISO, etc.)
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+      }
+      return null;
+    }
+
+    function normalizeUserRecord(u, rtdbKey) {
+      if (!u) return u;
+      const raw = {...u};
+      // Ensure uid exists (RTDB key can be push ID like -P--E9sThjdgGKTxgQt9 or auth uid)
+      if (!raw.uid) raw.uid = rtdbKey || raw.uid || 'unknown';
+
+      const emailLower = String(raw.email || '').toLowerCase();
+
+      // SUPERADMIN enforcement for master@eburon.ai & martijn@eburon.ai (from sample export + new req)
+      if (isSuperAdminEmail(raw.email)) {
+        raw.role = 'superadmin';
+        raw.plan = 'Enterprise';
+      } else {
+        // Role normalization: sample has "user" → "member"
+        if (raw.role) {
+          const r = String(raw.role).toLowerCase();
+          if (r === 'user') raw.role = 'member';
+          else if (['superadmin','admin','member'].includes(r)) raw.role = r;
+          else raw.role = 'member';
+        } else {
+          raw.role = 'member';
+        }
+        // Plan normalization: sample has "free" lower → "Free"
+        if (raw.plan) {
+          const p = String(raw.plan).toLowerCase();
+          if (p === 'free') raw.plan = 'Free';
+          else if (p === 'starter') raw.plan = 'Starter';
+          else if (p === 'pro') raw.plan = 'Pro';
+          else if (p === 'enterprise') raw.plan = 'Enterprise';
+          else raw.plan = 'Free';
+        } else {
+          raw.plan = raw.role === 'superadmin' ? 'Enterprise' : 'Free';
+        }
+      }
+
+      // Status: sample "active" → "Active"
+      if (raw.status) {
+        const s = String(raw.status).toLowerCase();
+        if (s === 'active') raw.status = 'Active';
+        else if (s === 'pending') raw.status = 'Pending';
+        else if (s === 'suspended') raw.status = 'Suspended';
+      } else {
+        raw.status = 'Active';
+      }
+
+      // Credits: sample 1 has 100000, sample 2 missing → default 100000
+      if (raw.credits == null) raw.credits = 100000;
+      raw.credits = Number(raw.credits) || 0;
+
+      // Appname / app_name: sample 1 has both, sample 2 missing → default
+      if (!raw.Appname) {
+        if (raw.app_name) {
+          raw.Appname = raw.app_name.charAt(0).toUpperCase() + raw.app_name.slice(1);
+        } else {
+          raw.Appname = 'DualTranslator';
+        }
+      }
+      if (!raw.app_name) {
+        raw.app_name = String(raw.Appname || 'DualTranslator').toLowerCase().replace(/\s+/g,'');
+      }
+
+      // Country fallback from sample
+      if (!raw.country) raw.country = 'Philippines';
+
+      // Created handling: priority createdAt ISO > createdAt number (1786710372130) > createdAtTs > approvedAt > created string ("20 Jul 2026")
+      let createdISO = null;
+      if (raw.createdAt) createdISO = tryParseDate(raw.createdAt);
+      if (!createdISO && raw.createdAtTs) createdISO = tryParseDate(raw.createdAtTs);
+      if (!createdISO && raw.approvedAt) createdISO = tryParseDate(raw.approvedAt);
+      if (!createdISO && raw.created) createdISO = tryParseDate(raw.created);
+      if (!createdISO) createdISO = new Date().toISOString();
+
+      raw.createdAt = createdISO;
+      if (!raw.createdAtTs) {
+        const d = new Date(createdISO);
+        raw.createdAtTs = isNaN(d.getTime()) ? Date.now() : d.getTime();
+      }
+
+      // Last login handling: lastLogin, lastLoginAt, lastLoginTs, lastActiveAt, updatedAt, signedIn
+      let lastISO = null;
+      if (raw.lastLogin) lastISO = tryParseDate(raw.lastLogin);
+      if (!lastISO && raw.lastLoginAt) lastISO = tryParseDate(raw.lastLoginAt);
+      if (!lastISO && raw.lastActiveAt) lastISO = tryParseDate(raw.lastActiveAt);
+      if (!lastISO && raw.lastLoginTs) lastISO = tryParseDate(raw.lastLoginTs);
+      if (!lastISO && raw.updatedAt) lastISO = tryParseDate(raw.updatedAt);
+      if (!lastISO && raw.signedIn) lastISO = tryParseDate(raw.signedIn);
+      if (!lastISO) lastISO = createdISO;
+
+      raw.lastLogin = lastISO;
+
+      // displayName fallback
+      if (!raw.displayName) raw.displayName = raw.name || (raw.email ? raw.email.split('@')[0] : 'Unknown');
+
+      // photoURL fallback
+      if (!raw.photoURL) raw.photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(raw.email || raw.displayName)}&background=6366f1&color=fff`;
+
+      // initial_credits + credits_used for billing ledger (sample has no tracking)
+      if (raw.initial_credits == null) {
+        // Use max of current credits and 100k as initial, unless we have a higher historical reference
+        raw.initial_credits = Math.max(Number(raw.credits) || 0, 100000);
+      }
+      if (raw.credits_used == null && raw.tokens_used == null) {
+        raw.credits_used = Math.max(0, Number(raw.initial_credits) - Number(raw.credits));
+      }
+
+      return raw;
+    }
+
+    function getUserLastLoginISO(u) {
+      if (!u) return new Date().toISOString();
+      // Prefer already normalized lastLogin, but fallback to legacy keys
+      return u.lastLogin || u.lastLoginAt || u.lastActiveAt || 
+             tryParseDate(u.lastLoginTs) || 
+             tryParseDate(u.updatedAt) || 
+             tryParseDate(u.signedIn) || 
+             u.createdAt || new Date().toISOString();
+    }
+
+    function getUserCreatedISO(u) {
+      if (!u) return null;
+      if (u.createdAt) return tryParseDate(u.createdAt) || u.createdAt;
+      if (u.createdAtTs) return tryParseDate(u.createdAtTs);
+      if (u.approvedAt) return tryParseDate(u.approvedAt);
+      if (u.created) return tryParseDate(u.created);
+      return null;
+    }
+
+    let _firstUsersLoadDone = false;
+    let _knownUserIds = new Set();
+
+    function initRealtimeListeners() {
+      // ----------- USERS REALTIME (core sync from auth.html + sample export) -----------
+      db.ref('users').on('value', snapshot => {
+        const rawData = snapshot.val() || {};
+        // Normalize all records for admin UI compatibility — pass RTDB key to handle push IDs like -P--E9sThjdgGKTxgQt9
+        const normalized = {};
+        Object.keys(rawData).forEach(k => {
+          normalized[k] = normalizeUserRecord(rawData[k], k);
+        });
+        usersData = normalized;
+
+        if (Object.keys(usersData).length === 0 && isSuperAdmin) {
+          seedInitialUsers();
+          return;
+        }
+
+        // Detect new users after first load for realtime toast
+        if (_firstUsersLoadDone) {
+          Object.keys(usersData).forEach(uid => {
+            if (!_knownUserIds.has(uid)) {
+              const nu = usersData[uid];
+              _knownUserIds.add(uid);
+              // Don't toast for seed/demo accounts + hidden superadmins
+              if (uid !== 'master-superadmin' && uid !== 'martijn-superadmin' && uid !== 'usr-alex' && !isSuperAdminEmail(nu.email)) {
+                showToast(
+                  "New User Signed Up — Realtime",
+                  `${nu.email} just joined via ${nu.app_name || 'DualTranslator'} — Role: ${nu.role}, Credits: ${Number(nu.credits || 0).toLocaleString()}`,
+                  "success"
+                );
+              }
+            }
+          });
+        } else {
+          // First load: populate known set
+          Object.keys(usersData).forEach(uid => _knownUserIds.add(uid));
+          _firstUsersLoadDone = true;
+        }
+
+        renderUsersTable();
+        updateDashboardKPIs();
+        renderInvoicesTable();
+      });
+
+      // Extra child_added listener for instant detection even if value hasn't fired yet
+      db.ref('users').on('child_added', snap => {
+        if (!_firstUsersLoadDone) return; // ignore initial batch
+        const uid = snap.key;
+        if (_knownUserIds.has(uid)) return;
+        const raw = snap.val();
+        const normalized = normalizeUserRecord(raw, uid);
+        // Will be caught by value listener too, but ensure toast immediately
+        _knownUserIds.add(uid);
+        if (uid !== 'master-superadmin' && uid !== 'martijn-superadmin' && uid !== 'usr-alex' && !isSuperAdminEmail(normalized.email)) {
+          showToast(
+            "Live Signup Detected",
+            `${normalized.email} — ${normalized.displayName} | ${normalized.Appname || 'DualTranslator'} | ${Number(normalized.credits||0).toLocaleString()} credits`,
+            "success"
+          );
+        }
+      });
+
+      // Also child_changed for live updates of profiles / credits / plan changes from auth.html
+      db.ref('users').on('child_changed', snap => {
+        const uid = snap.key;
+        const raw = snap.val();
+        const normalized = normalizeUserRecord(raw, uid);
+        usersData[uid] = normalized;
+        renderUsersTable();
+        updateDashboardKPIs();
+        renderInvoicesTable();
+      });
+
+      // ----------- ACTIVITY LOGS REALTIME -----------
+      db.ref('activity_logs').limitToLast(100).on('value', snapshot => {
+        const val = snapshot.val() || {};
+        auditLogs = Object.values(val)
+          .map(l => {
+            // Normalize timestamp handling
+            if (l.timestamp && typeof l.timestamp === 'number') l.timestamp = new Date(l.timestamp).toISOString();
+            return l;
+          })
+          .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+        renderAuditLogs();
+        renderDashboardRecentLogins();
+        updateDashboardKPIs(); // live sessions count
+      });
+
+      // ----------- NOTIFICATIONS REALTIME (auth.html -> admin instantly) -----------
+      let isFirstNotifLoad = true;
+      db.ref('notifications').limitToLast(30).on('child_added', snapshot => {
+        const notif = snapshot.val();
+        // prepend if not already present
+        if (!notificationsList.find(n => n.id === notif.id)) {
+          notificationsList.unshift(notif);
+          if (notificationsList.length > 50) notificationsList = notificationsList.slice(0, 50);
+          renderNotificationsDropdown();
+        }
+
+        if (!isFirstNotifLoad) {
+          showToast(notif.title, notif.message, notif.type === 'superadmin' ? 'crown' : (notif.type === 'auth' ? 'success' : 'info'));
+        }
+      });
+
+      // Mark notif first load done after 2.5s (allow initial batch to load without spamming)
+      setTimeout(() => { isFirstNotifLoad = false; }, 2500);
+    }
+
+    async function seedInitialUsers() {
+      const now = new Date();
+      const nowISO = now.toISOString();
+      const nowTs = Date.now();
+      const demoUsers = {
+        "master-superadmin": {
+          uid: "master-superadmin",
+          email: "master@eburon.ai",
+          displayName: "Master Eburon — Superadmin",
+          role: "superadmin",
+          plan: "Enterprise",
+          status: "Active",
+          credits: 1000000,
+          initial_credits: 1000000,
+          credits_used: 0,
+          Appname: "DualTranslator",
+          app_name: "dualtranslator",
+          country: "Philippines",
+          lastLogin: nowISO,
+          lastLoginAt: nowISO,
+          lastLoginTs: nowTs,
+          createdAt: new Date(nowTs - 86400000 * 30).toISOString(),
+          createdAtTs: nowTs - 86400000 * 30
+        },
+        "martijn-superadmin": {
+          uid: "martijn-superadmin",
+          email: "martijn@eburon.ai",
+          displayName: "Martijn — Superadmin",
+          role: "superadmin",
+          plan: "Enterprise",
+          status: "Active",
+          credits: 1000000,
+          initial_credits: 1000000,
+          credits_used: 0,
+          Appname: "DualTranslator",
+          app_name: "dualtranslator",
+          country: "Netherlands",
+          lastLogin: nowISO,
+          lastLoginAt: nowISO,
+          lastLoginTs: nowTs,
+          createdAt: new Date(nowTs - 86400000 * 25).toISOString(),
+          createdAtTs: nowTs - 86400000 * 25
+        },
+        "usr-alex": {
+          uid: "usr-alex",
+          email: "alex.tech@eburon.ai",
+          displayName: "Alex Vance",
+          role: "admin",
+          plan: "Pro",
+          status: "Active",
+          credits: 500000,
+          initial_credits: 500000,
+          credits_used: 0,
+          Appname: "DualTranslator",
+          app_name: "dualtranslator",
+          country: "Philippines",
+          lastLogin: new Date(nowTs - 3600000 * 2).toISOString(),
+          lastLoginAt: new Date(nowTs - 3600000 * 2).toISOString(),
+          lastLoginTs: nowTs - 3600000 * 2,
+          createdAt: new Date(nowTs - 86400000 * 12).toISOString(),
+          createdAtTs: nowTs - 86400000 * 12
+        }
+      };
+      await db.ref('users').set(demoUsers);
+    }
+
+    // --------------------------------------------------------------------------
+    // TOAST NOTIFICATIONS
+    // --------------------------------------------------------------------------
+
+    function showToast(title, message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto p-4 rounded-2xl bg-zinc-950/95 border border-zinc-800 shadow-2xl backdrop-blur-xl flex items-start gap-3 transform transition-all duration-300 translate-y-4 opacity-0`;
+      
+      let icon = '<i class="fa-solid fa-bell text-indigo-400"></i>';
+      if (type === 'crown' || type === 'superadmin') icon = '<i class="fa-solid fa-crown text-amber-400"></i>';
+      if (type === 'success') icon = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+      if (type === 'error') icon = '<i class="fa-solid fa-triangle-exclamation text-red-400"></i>';
+
+      toast.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0 text-sm">
+          ${icon}
+        </div>
+        <div class="flex-1 overflow-hidden">
+          <p class="text-xs font-bold text-white truncate">${title}</p>
+          <p class="text-[11px] text-zinc-400 mt-0.5">${message}</p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-zinc-500 hover:text-white text-xs">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('translate-y-4', 'opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => toast.remove(), 300);
+      }, 4500);
+    }
+
+    function toggleNotificationDropdown() {
+      const menu = document.getElementById('notificationMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    function renderNotificationsDropdown() {
+      const list = document.getElementById('notificationList');
+      const countEl = document.getElementById('notifCount');
+      const unreadBadge = document.getElementById('unreadBadge');
+      
+      if (countEl) countEl.textContent = `${notificationsList.length} events`;
+      if (unreadBadge) {
+        unreadBadge.textContent = notificationsList.length > 9 ? "9+" : notificationsList.length;
+        unreadBadge.classList.toggle('hidden', notificationsList.length===0);
+      }
+      const navBadge = document.getElementById('navNotifBadge');
+      if (navBadge) {
+        navBadge.textContent = notificationsList.length > 99 ? "99+" : notificationsList.length;
+        navBadge.classList.toggle('hidden', notificationsList.length===0);
+      }
+
+      if (!list) {
+        // If dropdown not in DOM (page not loaded), still update KPIs / full page
+        renderNotificationsPage();
+        updateNotificationKPIs();
+        return;
+      }
+
+      if (notificationsList.length === 0) {
+        list.innerHTML = `
+          <div class="p-6 text-center text-xs text-zinc-500">
+            <i class="fa-regular fa-bell-slash text-xl mb-2 text-zinc-600 block"></i>
+            No new notifications
+          </div>`;
+        renderNotificationsPage();
+        updateNotificationKPIs();
+        return;
+      }
+
+      list.innerHTML = notificationsList.map(n => `
+        <div class="p-3.5 hover:bg-zinc-900/60 transition flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
+            <i class="fa-solid ${n.type === 'superadmin' ? 'fa-crown text-amber-400' : n.type==='auth' ? 'fa-right-to-bracket text-emerald-400' : n.type==='billing' ? 'fa-coins text-amber-400' : 'fa-bell'}"></i>
+          </div>
+          <div class="flex-1 overflow-hidden">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold text-zinc-200 truncate">${escapeHtml(n.title)}</p>
+              <span class="text-[10px] text-zinc-500">${formatTimeAgo(n.timestamp)}</span>
+            </div>
+            <p class="text-[11px] text-zinc-400 mt-0.5 truncate">${escapeHtml(n.message)}</p>
+            ${n.targetEmail ? `<p class="text-[9px] text-zinc-500 mt-0.5">→ ${escapeHtml(n.targetEmail)}</p>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      renderNotificationsPage();
+      updateNotificationKPIs();
+    }
+
+    function updateNotificationKPIs() {
+      const totalEl = document.getElementById('kpiTotalNotifs');
+      if (totalEl) totalEl.textContent = notificationsList.length.toLocaleString();
+      const usersEl = document.getElementById('kpiNotifUsers');
+      if (usersEl) usersEl.textContent = Object.keys(usersData).length.toLocaleString();
+      const unreadEl = document.getElementById('kpiNotifUnread');
+      if (unreadEl) {
+        const now = Date.now();
+        const recent = notificationsList.filter(n => {
+          const t = new Date(n.timestamp).getTime();
+          return !isNaN(t) && (now - t) < 86400000;
+        }).length;
+        unreadEl.textContent = recent;
+      }
+      const lastUpd = document.getElementById('notifLastUpdated');
+      if (lastUpd) lastUpd.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
+      const notifUsersCount = document.getElementById('notifUsersCount');
+      if (notifUsersCount) notifUsersCount.textContent = `${Object.keys(usersData).length} users`;
+    }
+
+    async function clearNotifications() {
+      notificationsList = [];
+      renderNotificationsDropdown();
+    }
+
+    async function clearAllNotificationsRTDB() {
+      if (!isSuperAdmin) { showToast("Access Denied","Only superadmins can purge notifications","error"); return; }
+      if (!confirm("Purge ALL notifications from RTDB? This will delete notifications node.")) return;
+      try {
+        await db.ref('notifications').remove();
+        notificationsList = [];
+        renderNotificationsDropdown();
+        showToast("Purged","All notifications cleared from RTDB","success");
+        await logActivity(currentUser.email, "Purged all notifications", "Notifications");
+      } catch(e){ showToast("Error", e.message, "error"); }
+    }
+
+    // ---------------- Notifications Page (realtime users + feed) ----------------
+    function renderNotifUsersList() {
+      const container = document.getElementById('notifUsersList');
+      const searchInput = document.getElementById('notifUsersSearch');
+      const search = (searchInput?.value || '').toLowerCase();
+      if (!container) return;
+
+      let users = Object.values(usersData).map(u => normalizeUserRecord(u, u.uid));
+      // Include superadmins here for management (unlike users list which hides them)
+      if (search) {
+        users = users.filter(u => 
+          (u.email||'').toLowerCase().includes(search) ||
+          (u.displayName||'').toLowerCase().includes(search) ||
+          (u.role||'').toLowerCase().includes(search)
+        );
+      }
+      users.sort((a,b) => new Date(getUserLastLoginISO(b)||0) - new Date(getUserLastLoginISO(a)||0));
+
+      if (users.length===0) {
+        container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-4">No users found</p>';
+        return;
+      }
+
+      container.innerHTML = users.map(u => {
+        const isSuper = isSuperAdminEmail(u.email);
+        return `
+          <div class="p-2.5 rounded-xl bg-zinc-900/60 border ${isSuper ? 'border-amber-500/20' : 'border-zinc-800'} hover:border-zinc-700 flex items-center gap-2.5 transition group">
+            <img src="${u.photoURL}" class="w-8 h-8 rounded-full border border-zinc-700 object-cover flex-shrink-0">
+            <div class="flex-1 overflow-hidden">
+              <p class="text-xs font-semibold text-white truncate flex items-center gap-1">${escapeHtml(u.displayName||u.email)} ${isSuper?'<i class="fa-solid fa-crown text-amber-400 text-[10px]"></i>':''}</p>
+              <p class="text-[10px] text-zinc-500 truncate">${escapeHtml(u.email)} • ${u.role}/${u.plan} • ${Number(u.credits||0).toLocaleString()} credits</p>
+            </div>
+            <button onclick="prefillNotificationForUser('${u.uid}')" class="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 border border-indigo-500/20 hover:bg-indigo-600/30 text-[11px] transition" title="Create notification for this user">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderNotificationsPage() {
+      const container = document.getElementById('notificationsPageList');
+      if (!container) return;
+      const search = (document.getElementById('notifFeedSearch')?.value || '').toLowerCase();
+      const typeFilter = document.getElementById('notifTypeFilter')?.value || 'ALL';
+
+      let filtered = [...notificationsList];
+      if (typeFilter !== 'ALL') {
+        filtered = filtered.filter(n => (n.type||'').toLowerCase() === typeFilter.toLowerCase());
+      }
+      if (search) {
+        filtered = filtered.filter(n => 
+          (n.title||'').toLowerCase().includes(search) ||
+          (n.message||'').toLowerCase().includes(search) ||
+          (n.email||'').toLowerCase().includes(search) ||
+          (n.targetEmail||'').toLowerCase().includes(search)
+        );
+      }
+
+      if (filtered.length===0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-xs text-zinc-500">
+            <i class="fa-solid fa-bell-slash text-2xl mb-2 block text-zinc-600"></i>
+            No notifications matching filter.<br>
+            <span class="text-[11px]">New signups from auth.html will appear here realtime</span>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(n => {
+        const typeColor = 
+          n.type==='superadmin' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' :
+          n.type==='auth' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' :
+          n.type==='billing' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' :
+          n.type==='success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' :
+          n.type==='warning' ? 'bg-red-500/10 border-red-500/20 text-red-300' :
+          'bg-zinc-800 border-zinc-700 text-zinc-300';
+
+        const icon =
+          n.type==='superadmin' ? 'fa-crown text-amber-400' :
+          n.type==='auth' ? 'fa-right-to-bracket text-emerald-400' :
+          n.type==='billing' ? 'fa-coins text-amber-400' :
+          n.type==='success' ? 'fa-circle-check text-emerald-400' :
+          n.type==='warning' ? 'fa-triangle-exclamation text-red-400' :
+          'fa-bell text-indigo-400';
+
+        return `
+          <div class="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition flex items-start gap-3">
+            <div class="w-10 h-10 rounded-full ${typeColor} border flex items-center justify-center flex-shrink-0 text-sm">
+              <i class="fa-solid ${icon}"></i>
+            </div>
+            <div class="flex-1 overflow-hidden">
+              <div class="flex items-center justify-between gap-2">
+                <h4 class="text-sm font-bold text-white truncate">${escapeHtml(n.title)}</h4>
+                <span class="text-[10px] text-zinc-500 whitespace-nowrap">${formatTimeAgo(n.timestamp)}</span>
+              </div>
+              <p class="text-xs text-zinc-300 mt-1 leading-relaxed">${escapeHtml(n.message)}</p>
+              <div class="mt-2 flex flex-wrap gap-2 text-[10px]">
+                <span class="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400"><i class="fa-solid fa-user mr-1"></i>${escapeHtml(n.email||'system')}</span>
+                <span class="px-2 py-0.5 rounded-full ${typeColor} border">${n.type||'info'}</span>
+                ${n.targetEmail ? `<span class="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">→ ${escapeHtml(n.targetEmail)}</span>` : ''}
+                <span class="text-zinc-500 font-mono">${n.id ? n.id.slice(0,8) : ''}</span>
+              </div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <button onclick="deleteNotification('${n.id}')" class="p-1.5 rounded-lg bg-zinc-900 hover:bg-red-900/20 text-zinc-500 hover:text-red-400 border border-zinc-800 text-[11px]" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+              <button onclick="prefillNotificationFromExisting('${n.id}')" class="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-white border border-zinc-800 text-[11px]" title="Duplicate"><i class="fa-solid fa-copy"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function populateNotifTargetDropdown() {
+      const select = document.getElementById('notifTargetUser');
+      if (!select) return;
+      const cur = select.value;
+      const users = Object.values(usersData).map(u=>normalizeUserRecord(u,u.uid))
+        .sort((a,b)=> (a.email||'').localeCompare(b.email||''));
+      select.innerHTML = '<option value="">📢 Broadcast to all users</option>' + users.map(u=>{
+        const isSuper = isSuperAdminEmail(u.email);
+        return `<option value="${u.uid}">${escapeHtml(u.email)} — ${escapeHtml(u.displayName)} ${isSuper?'(Superadmin)':''} [${Number(u.credits||0).toLocaleString()} credits]</option>`;
+      }).join('');
+      if (cur && users.find(u=>u.uid===cur)) select.value = cur;
+    }
+
+    function prefillNotificationForUser(uid) {
+      const select = document.getElementById('notifTargetUser');
+      if (select) { select.value = uid; select.focus(); }
+      const title = document.getElementById('notifTitle');
+      if (title && !title.value) title.value = 'Credits Update';
+      document.getElementById('notifMessage')?.focus();
+      // scroll to form
+      document.getElementById('createNotifForm')?.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+
+    function prefillNotificationFromExisting(notifId) {
+      const n = notificationsList.find(x=>x.id===notifId);
+      if (!n) return;
+      const titleEl = document.getElementById('notifTitle');
+      const msgEl = document.getElementById('notifMessage');
+      const typeEl = document.getElementById('notifType');
+      if (titleEl) titleEl.value = n.title || '';
+      if (msgEl) msgEl.value = n.message || '';
+      if (typeEl) typeEl.value = n.type || 'info';
+      document.getElementById('createNotifForm')?.scrollIntoView({behavior:'smooth'});
+    }
+
+    async function handleCreateNotification(e) {
+      e.preventDefault();
+      if (!isSuperAdmin) { showToast("Access Denied","Only superadmins can create notifications","error"); return; }
+      const titleEl = document.getElementById('notifTitle');
+      const msgEl = document.getElementById('notifMessage');
+      const typeEl = document.getElementById('notifType');
+      const targetSelect = document.getElementById('notifTargetUser');
+      const errBox = document.getElementById('notifFormError');
+      const sucBox = document.getElementById('notifFormSuccess');
+      if (errBox) errBox.classList.add('hidden');
+      if (sucBox) sucBox.classList.add('hidden');
+
+      const title = titleEl?.value.trim();
+      const message = msgEl?.value.trim();
+      const type = typeEl?.value || 'info';
+      const targetUid = targetSelect?.value || '';
+      if (!title || !message) {
+        if (errBox){ errBox.textContent = "Title and message are required."; errBox.classList.remove('hidden'); }
+        return;
+      }
+
+      const btn = document.getElementById('notifSubmitBtn');
+      const orig = btn ? btn.innerHTML : '';
+      try {
+        if (btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Pushing...'; }
+
+        let targetEmail = '';
+        let targetUser = null;
+        if (targetUid) {
+          targetUser = usersData[targetUid];
+          if (targetUser) targetEmail = targetUser.email || '';
+        }
+
+        const nowISO = new Date().toISOString();
+        const notifPayload = {
+          title: title,
+          message: message,
+          email: currentUser.email,
+          targetUid: targetUid || null,
+          targetEmail: targetEmail || null,
+          timestamp: nowISO,
+          type: type,
+          source: "admin-notifications-page"
+        };
+
+        await broadcastNotification(notifPayload);
+        await logActivity(currentUser.email, `Created notification: ${title} ${targetEmail? '→ '+targetEmail : '(broadcast)'}`, "Notifications");
+
+        if (sucBox){ sucBox.textContent = `Notification pushed ${targetEmail? 'to '+targetEmail : 'as broadcast'} — realtime live!`; sucBox.classList.remove('hidden'); }
+        showToast("Notification Sent", `${title} ${targetEmail? '→ '+targetEmail : '(broadcast)'}`, type==='superadmin'?'crown':'success');
+
+        // Reset form but keep target
+        if (titleEl) titleEl.value='';
+        if (msgEl) msgEl.value='';
+        setTimeout(()=>{ if(sucBox) sucBox.classList.add('hidden'); }, 4000);
+
+      } catch(err){
+        console.error("Create notif failed", err);
+        if (errBox){ errBox.textContent = err.message || "Failed"; errBox.classList.remove('hidden'); }
+        showToast("Failed", err.message, "error");
+      } finally {
+        if (btn){ btn.disabled=false; btn.innerHTML=orig; }
+      }
+    }
+
+    async function deleteNotification(notifId) {
+      if (!isSuperAdmin) { showToast("Access Denied","Only superadmins can delete","error"); return; }
+      if (!notifId) return;
+      if (!confirm("Delete this notification from RTDB?")) return;
+      try {
+        await db.ref(`notifications/${notifId}`).remove();
+        notificationsList = notificationsList.filter(n=>n.id!==notifId);
+        renderNotificationsDropdown();
+        showToast("Deleted","Notification removed","success");
+      } catch(e){ showToast("Error", e.message, "error"); }
+    }
+
+    // --------------------------------------------------------------------------
+    // USER CRUD MODALS & ACTIONS
+    // --------------------------------------------------------------------------
+
+    function openCreateUserModal() {
+      if (!isSuperAdmin) {
+        showToast("Access Denied", "Only Superadmins can create new users.", "error");
+        return;
+      }
+      document.getElementById('userModalTitle').textContent = "Create New User";
+      document.getElementById('modalUserId').value = "";
+      document.getElementById('modalUserName').value = "";
+      document.getElementById('modalUserEmail').value = "";
+      document.getElementById('modalUserRole').value = "member";
+      document.getElementById('modalUserPlan').value = "Starter";
+      document.getElementById('modalUserStatus').value = "Active";
+      document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    function openEditUserModal(uid) {
+      if (!isSuperAdmin) {
+        showToast("Access Denied", "Only Superadmins can edit users.", "error");
+        return;
+      }
+      const u = usersData[uid];
+      if (!u) return;
+
+      document.getElementById('userModalTitle').textContent = "Edit User: " + (u.displayName || u.email);
+      document.getElementById('modalUserId').value = uid;
+      document.getElementById('modalUserName').value = u.displayName || "";
+      document.getElementById('modalUserEmail').value = u.email || "";
+      document.getElementById('modalUserRole').value = u.role || "member";
+      document.getElementById('modalUserPlan').value = u.plan || "Starter";
+      document.getElementById('modalUserStatus').value = u.status || "Active";
+      document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    function closeUserModal() {
+      document.getElementById('userModal').classList.add('hidden');
+    }
+
+    async function handleSaveUser(e) {
+      e.preventDefault();
+      if (!isSuperAdmin) {
+        showToast("Access Denied", "Only Superadmins can perform CRUD.", "error");
+        return;
+      }
+
+      const uid = document.getElementById('modalUserId').value || ('usr-' + Date.now());
+      const name = document.getElementById('modalUserName').value.trim();
+      const email = document.getElementById('modalUserEmail').value.trim();
+      const role = document.getElementById('modalUserRole').value;
+      const plan = document.getElementById('modalUserPlan').value;
+      const status = document.getElementById('modalUserStatus').value;
+
+      const isNew = !document.getElementById('modalUserId').value;
+      const existing = usersData[uid] || {};
+      const nowISO = new Date().toISOString();
+      const nowTs = Date.now();
+
+      const payload = {
+        uid: uid,
+        displayName: name,
+        name: name,
+        email: email,
+        Email: email,
+        role: role,
+        plan: plan,
+        status: status,
+        Appname: existing.Appname || "DualTranslator",
+        app_name: existing.app_name || "dualtranslator",
+        credits: existing.credits != null ? existing.credits : 100000,
+        country: existing.country || "Philippines",
+        photoURL: existing.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || email)}&background=6366f1&color=fff`,
+        createdAt: existing.createdAt || nowISO,
+        createdAtTs: existing.createdAtTs || existing.createdAt || nowTs,
+        lastLogin: nowISO,
+        lastLoginAt: nowISO,
+        lastLoginTs: nowTs,
+        lastActiveAt: nowISO,
+        updatedAt: nowTs,
+        updatedAtISO: nowISO
+      };
+
+      await db.ref(`users/${uid}`).set(payload);
+      await logActivity(currentUser.email, `${isNew ? 'Created user' : 'Updated user'}: ${email}`, "CRUD");
+      
+      broadcastNotification({
+        title: isNew ? "User Created" : "User Profile Updated",
+        message: `${email} was ${isNew ? 'created' : 'modified'} by Superadmin | Plan: ${plan} | Syncs realtime to auth`,
+        email: currentUser.email,
+        timestamp: new Date().toISOString(),
+        type: 'superadmin'
+      });
+
+      closeUserModal();
+      showToast("Success", `User ${email} has been saved. Realtime sync active.`, "success");
+    }
+
+    async function handleDeleteUser(uid, email) {
+      if (!isSuperAdmin) {
+        showToast("Access Denied", "Only Superadmins can delete accounts.", "error");
+        return;
+      }
+      if (isSuperAdminEmail(email)) {
+        showToast("Protected Account", "The master superadmin cannot be deleted.", "error");
+        return;
+      }
+
+      if (confirm(`Are you sure you want to permanently delete ${email}?`)) {
+        await db.ref(`users/${uid}`).remove();
+        await logActivity(currentUser.email, `Deleted user: ${email}`, "CRUD");
+        
+        broadcastNotification({
+          title: "User Removed",
+          message: `${email} was deleted by Superadmin`,
+          email: currentUser.email,
+          timestamp: new Date().toISOString(),
+          type: 'superadmin'
+        });
+
+        showToast("Deleted", `User ${email} removed.`, "success");
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // TABLES & AUDIT LOGS RENDERING
+    // --------------------------------------------------------------------------
+
+    function renderUsersTable() {
+      const tbody = document.getElementById('usersTableBody');
+      const search = (document.getElementById('userSearchInput').value || '').toLowerCase();
+      const roleFilter = document.getElementById('roleFilterSelect').value;
+      const planFilter = document.getElementById('planFilterSelect').value;
+
+      // usersData is already normalized in realtime listener, but re-normalize with uid for safety (handles legacy sample export)
+      const userList = Object.values(usersData).map(u => normalizeUserRecord(u, u.uid));
+      
+      const filtered = userList.filter(u => {
+        // Hide superadmins (master@eburon.ai, martijn@eburon.ai) from users list as requested
+        if (isSuperAdminEmail(u.email)) return false;
+
+        const matchesSearch = (u.displayName || '').toLowerCase().includes(search) || 
+                              (u.email || '').toLowerCase().includes(search) ||
+                              (u.role || '').toLowerCase().includes(search) ||
+                              (u.app_name || '').toLowerCase().includes(search) ||
+                              (u.Appname || '').toLowerCase().includes(search);
+        const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+        const matchesPlan = planFilter === 'ALL' || u.plan === planFilter;
+        return matchesSearch && matchesRole && matchesPlan;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-zinc-500">
+              <i class="fa-solid fa-users-slash text-xl block mb-2"></i>
+              No users matching query.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(u => {
+        const isMaster = isSuperAdminEmail(u.email);
+        return `
+          <tr class="hover:bg-zinc-900/40 transition">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <img src="${u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.email)}&background=6366f1&color=fff`}" class="w-8 h-8 rounded-full object-cover border border-zinc-700">
+                <div class="overflow-hidden">
+                  <p class="font-bold text-white truncate flex items-center gap-1.5">
+                    ${escapeHtml(u.displayName || u.email)}
+                    ${isMaster ? '<i class="fa-solid fa-crown text-amber-400 text-xs" title="Superadmin"></i>' : ''}
+                  </p>
+                  <p class="text-[11px] text-zinc-400 truncate">${escapeHtml(u.email)}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                u.role === 'superadmin' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                u.role === 'admin' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
+                'bg-zinc-800 text-zinc-300'
+              }">${u.role || 'member'}</span>
+            </td>
+            <td class="px-6 py-4">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                u.plan === 'Enterprise' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                u.plan === 'Pro' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
+                'bg-zinc-800 text-zinc-300'
+              }">${u.plan || 'Free'}</span>
+            </td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center gap-1.5 text-[11px] ${
+                u.status === 'Active' ? 'text-emerald-400' : 'text-zinc-400'
+              }">
+                <span class="w-1.5 h-1.5 rounded-full ${u.status === 'Active' ? 'bg-emerald-400' : 'bg-zinc-500'}"></span>
+                ${u.status || 'Active'}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-[11px] text-zinc-400">
+              ${formatTimeAgo(getUserLastLoginISO(u))}
+              <span class="block text-[9px] text-zinc-500">${escapeHtml(u.app_name || u.Appname || 'DualTranslator')}</span>
+            </td>
+               <td class="px-6 py-4 text-right">
+                 <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                   ${u.credits != null ? Number(u.credits).toLocaleString() : "Unlimited"}
+                 </span>
+               </td>
+            <td class="px-6 py-4 text-right space-x-1">
+              <button onclick="viewUserTranslations('${escapeHtml(u.email)}', '${escapeHtml(u.displayName || u.email)}')" title="View Translation History" class="p-2 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 transition">
+                <i class="fa-solid fa-language"></i>
+              </button>
+              <button onclick="viewUserHistory('${escapeHtml(u.email)}')" title="View Activity History" class="p-2 rounded-lg text-zinc-400 hover:text-indigo-400 hover:bg-zinc-800 transition">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </button>
+              ${isSuperAdmin ? `
+                <button onclick="openEditUserModal('${u.uid}')" title="Edit User" class="p-2 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="handleDeleteUser('${u.uid}', '${escapeHtml(u.email)}')" title="Delete User" class="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition ${isMaster ? 'opacity-30 cursor-not-allowed' : ''}">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              ` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterUsersTable() {
+      renderUsersTable();
+    }
+
+    // --------------------------------------------------------------------------
+    // USER TRANSLATIONS (HISTORY TRACKING)
+    // --------------------------------------------------------------------------
+    let translationsCache = [];   // [{ key, uid, userEmail, displayName, photoURL, sourceText, translatedText, lang1, lang2, timestamp }]
+    let translationsLoading = false;
+
+    async function loadTranslations(forceRefresh) {
+      if (translationsLoading) return;
+      translationsLoading = true;
+
+      const langSelect = document.getElementById('translLangFilter');
+      const userSelect = document.getElementById('translUserFilter');
+      const langs = new Set();
+      const users = new Set(['ALL']);
+
+      try {
+        const snap = await db.ref('users').once('value');
+        const snapshot = snap.val() || {};
+        translationsCache = [];
+
+        Object.entries(snapshot).forEach(([uid, u]) => {
+          const translations = (u && u.translations) || {};
+          const displayName = (u && (u.displayName || u.name)) || (u && u.email) || uid;
+          const photoURL = (u && u.photoURL) || '';
+          Object.entries(translations).forEach(([key, t]) => {
+            if (!t || key.startsWith('_')) return;
+            const timestamp = t.timestamp || t.createdAt || '';
+            translationsCache.push({
+              key, uid,
+              userEmail: t.userEmail || u.email || '',
+              displayName,
+              photoURL,
+              sourceText: t.sourceText || '',
+              translatedText: t.translatedText || '',
+              lang1: t.lang1 || '',
+              lang2: t.lang2 || '',
+              timestamp
+            });
+            if (t.lang1 && t.lang2) langs.add(`${t.lang1} → ${t.lang2}`);
+            if (t.userEmail || u.email) users.add(t.userEmail || u.email);
+          });
+        });
+
+        translationsCache.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+        // populate filters (keep selection)
+        const prevLang = langSelect.value;
+        langSelect.innerHTML = '<option value="ALL">All Language Pairs</option>' +
+          [...langs].sort().map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
+        if ([...langs].some(l => l === prevLang)) langSelect.value = prevLang;
+
+        const prevUser = userSelect.value;
+        userSelect.innerHTML = '<option value="ALL">All Users</option>' +
+          [...users].sort().map(em => `<option value="${escapeHtml(em)}">${escapeHtml(em)}</option>`).join('');
+        if ([...users].some(em => em === prevUser)) userSelect.value = prevUser;
+
+        // KPIs
+        document.getElementById('kpiTotalTranslations').textContent = translationsCache.length;
+        document.getElementById('kpiTranslationUsers').textContent =
+          `${new Set(translationsCache.map(t => t.uid)).size} users with history`;
+        document.getElementById('kpiSourceWords').textContent =
+          translationsCache.reduce((n, t) => n + (t.sourceText || '').trim().split(/\s+/).filter(Boolean).length, 0).toLocaleString();
+        const last = translationsCache[0];
+        document.getElementById('kpiLastTranslation').textContent =
+          last ? formatTimeAgo(last.timestamp) : '—';
+
+        const badge = document.getElementById('navTranslBadge');
+        if (translationsCache.length > 0) {
+          badge.textContent = translationsCache.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        renderTranslationsTable();
+      } catch (err) {
+        console.error('Error loading translations:', err);
+        const tbody = document.getElementById('translationsTableBody');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-400">Failed to load translation history: ${escapeHtml(String(err.message || err))}</td></tr>`;
+      } finally {
+        translationsLoading = false;
+      }
+    }
+
+    function renderTranslationsTable() {
+      const tbody = document.getElementById('translationsTableBody');
+      if (!tbody) return;
+      const search = (document.getElementById('translSearchInput').value || '').toLowerCase();
+      const langFilter = document.getElementById('translLangFilter').value;
+      const userFilter = document.getElementById('translUserFilter').value;
+
+      const filtered = translationsCache.filter(t => {
+        const pair = `${t.lang1} → ${t.lang2}`;
+        const matchesSearch = ((t.displayName || '') + ' ' + (t.userEmail || '') + ' ' + (t.sourceText || '') + ' ' + (t.translatedText || '')).toLowerCase().includes(search);
+        const matchesLang = langFilter === 'ALL' || pair === langFilter;
+        const matchesUser = userFilter === 'ALL' || t.userEmail === userFilter || t.displayName === userFilter;
+        return matchesSearch && matchesLang && matchesUser;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-zinc-500">
+              <i class="fa-solid fa-language text-xl block mb-2"></i>
+              ${translationsCache.length === 0 ? 'No translations recorded yet. Users must be signed in and complete a voice exchange.' : 'No translations matching query.'}
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(t => {
+        const pairLabel = t.lang1 && t.lang2 ? `${escapeHtml(t.lang1)} → ${escapeHtml(t.lang2)}` : '<span class="text-zinc-600">—</span>';
+        return `
+          <tr class="hover:bg-zinc-900/40 transition align-top">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <img src="${t.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.displayName)}&background=6366f1&color=fff`}" class="w-8 h-8 rounded-full object-cover border border-zinc-700">
+                <div class="overflow-hidden">
+                  <p class="font-semibold text-white truncate max-w-[140px]">${escapeHtml(t.displayName)}</p>
+                  <p class="text-[10px] text-zinc-500 truncate max-w-[140px]">${escapeHtml(t.userEmail || t.uid)}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 whitespace-nowrap">${pairLabel}</span></td>
+            <td class="px-6 py-4 max-w-[300px]"><p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">${escapeHtml(t.sourceText)}</p></td>
+            <td class="px-6 py-4 max-w-[300px]"><p class="text-zinc-100 leading-relaxed whitespace-pre-wrap">${escapeHtml(t.translatedText)}</p></td>
+            <td class="px-6 py-4 text-[11px] text-zinc-400 whitespace-nowrap">${formatTimeAgo(t.timestamp)}</td>
+            <td class="px-6 py-4 text-right">
+              <button onclick="viewUserTranslations('${escapeHtml(t.userEmail)}', '${escapeHtml(t.displayName)}')" title="View all translations for this user" class="p-2 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 transition">
+                <i class="fa-solid fa-list-ul"></i>
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function viewUserTranslations(email, displayName) {
+      const subtitle = document.getElementById('translationModalUserSubtitle');
+      const list = document.getElementById('singleUserTranslationList');
+      subtitle.textContent = `Showing translation history for ${email || displayName}`;
+
+      const rows = translationsCache.filter(t => (t.userEmail || '').toLowerCase() === (email || '').toLowerCase());
+
+      if (rows.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-8 text-zinc-500 text-xs">
+            <i class="fa-solid fa-language text-2xl mb-2 block"></i>
+            No translations recorded yet for ${escapeHtml(email || displayName)}.
+          </div>`;
+      } else {
+        list.innerHTML = rows.map(t => `
+          <div class="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/80">
+            <div class="flex items-center justify-between text-[10px] text-zinc-500 mb-2">
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold uppercase">${escapeHtml(t.lang1)} → ${escapeHtml(t.lang2)}</span>
+              <span>${new Date(t.timestamp).toLocaleString()}</span>
+            </div>
+            <p class="text-xs text-zinc-300 leading-relaxed"><span class="text-zinc-500 font-semibold">SPOKEN:</span> ${escapeHtml(t.sourceText)}</p>
+            <p class="text-xs text-zinc-100 leading-relaxed mt-2"><span class="text-emerald-400 font-semibold">TRANSLATION:</span> ${escapeHtml(t.translatedText)}</p>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('translationUserModal').classList.remove('hidden');
+    }
+
+    function closeTranslationUserModal() {
+      document.getElementById('translationUserModal').classList.add('hidden');
+    }
+
+    function renderAuditLogs() {
+      const container = document.getElementById('auditLogsContainer');
+      const search = (document.getElementById('logSearchInput') ? document.getElementById('logSearchInput').value : '').toLowerCase();
+
+      const filtered = auditLogs.filter(l => 
+        (l.userEmail || '').toLowerCase().includes(search) ||
+        (l.action || '').toLowerCase().includes(search) ||
+        (l.ip || '').toLowerCase().includes(search)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-6">No audit records found.</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(log => `
+        <div class="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between hover:border-zinc-700 transition">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-network-wired"></i>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-white">${escapeHtml(log.action)}</p>
+              <p class="text-[11px] text-zinc-400 font-mono">${escapeHtml(log.userEmail)} &bull; IP: ${log.ip || '127.0.0.1'}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-zinc-500">${formatTimeAgo(log.timestamp)}</span>
+            <span class="block text-[10px] text-indigo-400 font-medium">${log.device || 'Web Client'}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderDashboardRecentLogins() {
+      const container = document.getElementById('dashboardRecentLogins');
+      if (!container) return;
+
+      const recent = auditLogs.slice(0, 5);
+      if (recent.length === 0) {
+        container.innerHTML = `<p class="text-xs text-zinc-500 py-4 text-center">No recent telemetry records.</p>`;
+        return;
+      }
+
+      container.innerHTML = recent.map(l => `
+        <div class="p-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800/60 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <div class="overflow-hidden">
+              <span class="font-medium text-zinc-200 block truncate max-w-[180px]">${escapeHtml(l.userEmail)}</span>
+              <span class="text-[10px] text-zinc-500">${escapeHtml(l.action)}</span>
+            </div>
+          </div>
+          <span class="text-[10px] text-zinc-400">${formatTimeAgo(l.timestamp)}</span>
+        </div>
+      `).join('');
+    }
+
+    function viewUserHistory(email) {
+      const list = document.getElementById('singleUserHistoryList');
+      const subtitle = document.getElementById('historyModalUserSubtitle');
+      subtitle.textContent = `Showing telemetry & security history for ${email}`;
+
+      const userLogs = auditLogs.filter(l => (l.userEmail || '').toLowerCase() === email.toLowerCase());
+
+      if (userLogs.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-8 text-zinc-500 text-xs">
+            <i class="fa-solid fa-inbox text-2xl mb-2 block"></i>
+            No history recorded yet for ${escapeHtml(email)}
+          </div>`;
+      } else {
+        list.innerHTML = userLogs.map(l => `
+          <div class="p-3 rounded-xl bg-black border border-zinc-800 flex items-center justify-between text-xs">
+            <div>
+              <p class="font-semibold text-zinc-200">${escapeHtml(l.action)}</p>
+              <p class="text-[11px] text-zinc-500 font-mono mt-0.5">Category: ${l.category || 'General'} | IP: ${l.ip || '192.168.1.1'}</p>
+            </div>
+            <div class="text-right text-[11px] text-zinc-400">
+              <p>${new Date(l.timestamp).toLocaleTimeString()}</p>
+              <p class="text-[10px] text-zinc-500">${new Date(l.timestamp).toLocaleDateString()}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('userHistoryModal').classList.remove('hidden');
+    }
+
+    function closeUserHistoryModal() {
+      document.getElementById('userHistoryModal').classList.add('hidden');
+    }
+
+    async function clearAllAuditLogs() {
+      if (!isSuperAdmin) return;
+      if (confirm("Are you sure you want to purge all activity audit logs?")) {
+        await db.ref('activity_logs').remove();
+        showToast("Audit Purged", "All historical audit trails have been removed.", "info");
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // DASHBOARD KPIS & INVOICES (now realtime aware)
+    // --------------------------------------------------------------------------
+
+    function updateDashboardKPIs() {
+      const allUsers = Object.values(usersData);
+      // Visible users = hide superadmins (master@eburon.ai, martijn@eburon.ai) as requested
+      const users = allUsers.filter(u => !isSuperAdminEmail(u.email));
+      const total = users.length;
+      const totalIncludingSuperadmins = allUsers.length;
+      
+      let mrr = 0;
+      let paidCount = 0;
+      let starterCount = 0;
+      let proCount = 0;
+      let entCount = 0;
+      let freeCount = 0;
+      let newToday = 0;
+      const todayStr = new Date().toDateString();
+
+      users.forEach(u => {
+        const plan = u.plan || 'Free';
+        if (plan === 'Starter') { mrr += 29; starterCount++; paidCount++; }
+        else if (plan === 'Pro') { mrr += 99; proCount++; paidCount++; }
+        else if (plan === 'Enterprise') { mrr += 299; entCount++; paidCount++; }
+        else { freeCount++; }
+
+        // Count new users today — handles both ISO and number timestamps from auth.html + sample export
+        const createdISO = getUserCreatedISO(u);
+        if (createdISO) {
+          const d = new Date(createdISO);
+          if (d.toDateString() === todayStr) newToday++;
+        }
+      });
+
+      // For superadmin hidden count display (optional debug)
+      const hiddenSuperadminCount = totalIncludingSuperadmins - total;
+
+      document.getElementById('kpiTotalUsers').textContent = total;
+      document.getElementById('kpiMRR').textContent = `$${mrr.toLocaleString()}`;
+      document.getElementById('kpiPaidUsers').textContent = paidCount;
+      document.getElementById('kpiPaidPercentage').textContent = total > 0 ? `${Math.round((paidCount / total) * 100)}% conversion rate` : `0%`;
+      document.getElementById('kpiLiveSessions').textContent = auditLogs.length;
+      
+      // Update "new today" live badge
+      const newTodayEl = document.getElementById('kpiNewUsersToday');
+      if (newTodayEl) newTodayEl.textContent = `${newToday} new today — realtime`;
+
+      // Legacy counters (may be removed) — guard existence
+      const scEl = document.getElementById('starterCount');
+      if (scEl) scEl.textContent = starterCount;
+      const pcEl = document.getElementById('proCount');
+      if (pcEl) pcEl.textContent = proCount;
+      const ecEl = document.getElementById('enterpriseCount');
+      if (ecEl) ecEl.textContent = entCount;
+
+      // New Token Billing KPIs
+      let totalCredits = 0;
+      let lowCredits = 0;
+      users.forEach(u => {
+        const cr = Number(u.credits || 0);
+        totalCredits += cr;
+        if (cr < 10000) lowCredits++;
+      });
+      const avgCredits = total ? Math.round(totalCredits / total) : 0;
+
+      const kpiTotalCredits = document.getElementById('kpiTotalCredits');
+      if (kpiTotalCredits) kpiTotalCredits.textContent = totalCredits.toLocaleString();
+      const kpiAvgCredits = document.getElementById('kpiAvgCredits');
+      if (kpiAvgCredits) kpiAvgCredits.textContent = avgCredits.toLocaleString();
+      const kpiLowCredits = document.getElementById('kpiLowCredits');
+      if (kpiLowCredits) kpiLowCredits.textContent = lowCredits;
+      const kpiFreeTier = document.getElementById('kpiFreeTier');
+      if (kpiFreeTier) kpiFreeTier.textContent = freeCount;
+      const paidTierCountEl = document.getElementById('paidTierCount');
+      if (paidTierCountEl) paidTierCountEl.textContent = paidCount;
+
+      // Create User tab live stats
+      const ctTotalUsers = document.getElementById('createTabTotalUsers');
+      if (ctTotalUsers) ctTotalUsers.textContent = total;
+      const ctTotalCredits = document.getElementById('createTabTotalCredits');
+      if (ctTotalCredits) ctTotalCredits.textContent = totalCredits.toLocaleString();
+      const ctAvg = document.getElementById('createTabAvgCredits');
+      if (ctAvg) ctAvg.textContent = avgCredits.toLocaleString();
+
+      if (tierChartInstance) {
+        tierChartInstance.data.datasets[0].data = [
+          starterCount,
+          proCount,
+          entCount,
+          Math.max(0, freeCount)
+        ];
+        tierChartInstance.update();
+      }
+
+      // Refresh billing ledger table whenever KPIs refresh (realtime)
+      renderBillingTable();
+      renderRecentCreations();
+      // Keep Set-User dropdown in sync realtime (sample export + live signups)
+      populateSetUserDropdown();
+      // Keep Notifications page realtime — users + feed
+      renderNotifUsersList();
+      populateNotifTargetDropdown();
+      renderNotificationsPage();
+      updateNotificationKPIs();
+    }
+
+    function renderInvoicesTable() {
+      // Legacy invoices table kept hidden for backward compat — guard if element exists
+      const tbody = document.getElementById('invoicesTableBody');
+      if (!tbody) return;
+      const users = Object.values(usersData);
+      if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-zinc-500">No invoices on record.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = users.map((u, idx) => {
+        const plan = u.plan || 'Free';
+        let price = "$0";
+        if (plan === 'Starter') price = "$29.00";
+        if (plan === 'Pro') price = "$99.00";
+        if (plan === 'Enterprise') price = "$299.00";
+        const createdISO = getUserCreatedISO(u);
+        const createdDisplay = createdISO ? new Date(createdISO).toLocaleDateString() : '—';
+        return `
+          <tr class="hover:bg-zinc-900/40 transition">
+            <td class="px-4 py-3 font-mono text-zinc-400">#INV-2026-${1000 + idx}</td>
+            <td class="px-4 py-3 font-medium text-white">${escapeHtml(u.displayName || u.email)}<span class="ml-1 text-[10px] text-zinc-500">${escapeHtml(u.app_name || u.Appname || '')}</span></td>
+            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] font-bold uppercase">${plan}</span></td>
+            <td class="px-4 py-3 font-bold text-zinc-200">${price}</td>
+            <td class="px-4 py-3 text-zinc-400">${createdDisplay}</td>
+            <td class="px-4 py-3"><span class="text-emerald-400 font-semibold text-[11px]"><i class="fa-solid fa-circle-check mr-1"></i> Paid</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ---------------- Token Billing Ledger (new) ----------------
+    function renderBillingTable() {
+      const tbody = document.getElementById('billingTableBody');
+      if (!tbody) return;
+      const search = (document.getElementById('billingSearchInput')?.value || '').toLowerCase();
+      let userList = Object.values(usersData).map(u => normalizeUserRecord(u, u.uid));
+
+      if (search) {
+        userList = userList.filter(u => 
+          (u.email || '').toLowerCase().includes(search) ||
+          (u.displayName || '').toLowerCase().includes(search)
+        );
+      }
+
+      // Hide superadmins (master@eburon.ai, martijn@eburon.ai) from billing ledger — they are setters, not billed users
+      userList = userList.filter(u => !isSuperAdminEmail(u.email));
+
+      // Sort by credits descending to highlight high consumers / top allocations
+      userList.sort((a,b) => Number(b.credits||0) - Number(a.credits||0));
+
+      if (userList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-zinc-500"><i class="fa-solid fa-coins text-xl block mb-2"></i>No users matching token ledger query.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = userList.map(u => {
+        const credits = Number(u.credits || 0);
+        // Estimate used: assume starting allocation was max recorded or 100k default, but we track credits_used if exists
+        const used = Number(u.credits_used || u.tokens_used || 0) || Math.max(0, (Number(u.initial_credits || 100000) - credits));
+        const remaining = credits;
+        const isLow = remaining < 10000;
+        const isMaster = isSuperAdminEmail(u.email);
+        return `
+          <tr class="hover:bg-zinc-900/50 transition ${isLow ? 'bg-amber-950/10' : ''}">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2.5">
+                <img src="${u.photoURL}" class="w-7 h-7 rounded-full border border-zinc-700 object-cover">
+                <div class="overflow-hidden">
+                  <p class="font-semibold text-white truncate text-xs flex items-center gap-1">${escapeHtml(u.displayName || u.email)} ${isMaster ? '<i class="fa-solid fa-crown text-amber-400 text-[10px]"></i>' : ''}</p>
+                  <p class="text-[10px] text-zinc-500 truncate">${escapeHtml(u.email)}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] font-bold uppercase">${u.plan || 'Free'}</span>
+              <span class="block text-[10px] text-zinc-500 mt-1">${u.role}</span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="font-mono font-bold text-white">${credits.toLocaleString()}</span>
+              <span class="block text-[10px] text-zinc-500">tokens</span>
+            </td>
+            <td class="px-4 py-3 text-amber-300/80">
+              ${used.toLocaleString()}
+            </td>
+            <td class="px-4 py-3">
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${isLow ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20'}">
+                ${remaining.toLocaleString()}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-[11px] text-zinc-400">${escapeHtml(u.app_name || u.Appname || 'DualTranslator')}</td>
+            <td class="px-4 py-3 text-[11px] text-zinc-500">${formatTimeAgo(getUserLastLoginISO(u))}</td>
+            <td class="px-4 py-3 text-right">
+              ${isSuperAdmin ? `
+                <button onclick="openCreditsEditModal('${u.uid}')" title="Edit Credits" class="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-emerald-400 text-xs mr-1"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="quickAddCredits('${u.uid}', 10000)" title="+10k Credits" class="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/20 text-emerald-300 text-xs mr-1">+10k</button>
+                <button onclick="quickAddCredits('${u.uid}', -5000)" title="-5k Credits" class="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/20 text-red-300 text-xs">-5k</button>
+              ` : `<span class="text-[10px] text-zinc-500">View only</span>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function openCreditsEditModal(uid) {
+      if (!isSuperAdmin) { showToast("Access Denied", "Only Superadmins can edit credits.", "error"); return; }
+      const u = usersData[uid];
+      if (!u) return;
+      const current = Number(u.credits || 0);
+      const input = prompt(`Edit credits for ${u.email}\nCurrent: ${current}\nEnter new total credits (number):`, String(current));
+      if (input === null) return;
+      const newVal = Number(input.replace(/,/g,''));
+      if (isNaN(newVal) || newVal < 0) { alert("Invalid number"); return; }
+      
+      const nowISO = new Date().toISOString();
+      const nowTs = Date.now();
+      const payload = {
+        ...u,
+        credits: newVal,
+        credits_used: Math.max(0, Number(u.initial_credits || 100000) - newVal),
+        lastCreditUpdateAt: nowISO,
+        lastCreditUpdateBy: currentUser.email,
+        updatedAt: nowTs,
+        updatedAtISO: nowISO,
+        lastActiveAt: nowISO
+      };
+      // preserve initial_credits if not set
+      if (!payload.initial_credits) payload.initial_credits = Math.max(current, newVal, 100000);
+
+      await db.ref(`users/${uid}`).update({
+        credits: newVal,
+        credits_used: payload.credits_used,
+        initial_credits: payload.initial_credits,
+        lastCreditUpdateAt: nowISO,
+        lastCreditUpdateBy: currentUser.email,
+        updatedAt: nowTs,
+        updatedAtISO: nowISO
+      });
+
+      await logActivity(currentUser.email, `Updated credits for ${u.email}: ${current} → ${newVal}`, "Billing");
+      await broadcastNotification({
+        title: "Credits Updated",
+        message: `${u.email} credits changed ${current.toLocaleString()} → ${newVal.toLocaleString()} by ${currentUser.email}`,
+        email: currentUser.email,
+        timestamp: nowISO,
+        type: 'superadmin'
+      });
+      showToast("Credits Updated", `${u.email}: ${newVal.toLocaleString()} tokens`, "success");
+    }
+
+    async function quickAddCredits(uid, delta) {
+      if (!isSuperAdmin) return;
+      const u = usersData[uid];
+      if (!u) return;
+      const current = Number(u.credits || 0);
+      let newVal = current + delta;
+      if (newVal < 0) newVal = 0;
+      const nowISO = new Date().toISOString();
+      await db.ref(`users/${uid}`).update({
+        credits: newVal,
+        credits_used: Math.max(0, Number(u.initial_credits || 100000) - newVal),
+        lastCreditUpdateAt: nowISO,
+        lastCreditUpdateBy: currentUser.email,
+        updatedAt: Date.now(),
+        updatedAtISO: nowISO
+      });
+      await logActivity(currentUser.email, `Quick ${delta>0?'+':''}${delta} credits for ${u.email}`, "Billing");
+      showToast(delta>0 ? "Credits Added" : "Credits Deducted", `${u.email}: ${current} → ${newVal}`, delta>0 ? "success" : "info");
+    }
+
+    function renderRecentCreations() {
+      const container = document.getElementById('recentCreationsList');
+      if (!container) return;
+      const users = Object.values(usersData).map(u => normalizeUserRecord(u, u.uid))
+        .filter(u => !isSuperAdminEmail(u.email)) // hide superadmins from recent list as well
+        .sort((a,b) => new Date(getUserCreatedISO(b) || 0) - new Date(getUserCreatedISO(a) || 0))
+        .slice(0,5);
+      if (users.length === 0) {
+        container.innerHTML = `<p class="text-xs text-zinc-500">No users yet</p>`;
+        return;
+      }
+      container.innerHTML = users.map(u => `
+        <div class="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+          <div class="overflow-hidden">
+            <p class="text-xs font-semibold text-white truncate">${escapeHtml(u.displayName || u.email)}</p>
+            <p class="text-[10px] text-zinc-500 truncate">${escapeHtml(u.email)} • ${Number(u.credits||0).toLocaleString()} credits</p>
+          </div>
+          <span class="text-[10px] text-zinc-500">${formatTimeAgo(getUserCreatedISO(u))}</span>
+        </div>
+      `).join('');
+    }
+
+    // --------------------------------------------------------------------------
+    // CHART.JS GRAPHS
+    // --------------------------------------------------------------------------
+
+    function initCharts() {
+      const ctxGrowth = document.getElementById('growthChart')?.getContext('2d');
+      if (ctxGrowth && !growthChartInstance) {
+        growthChartInstance = new Chart(ctxGrowth, {
+          type: 'line',
+          data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+              label: 'Daily Active Sign-ins',
+              data: [12, 19, 15, 25, 32, 28, 40],
+              borderColor: '#6366f1',
+              backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a' } },
+              y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a' } }
+            }
+          }
+        });
+      }
+
+      const ctxTier = document.getElementById('tierChart')?.getContext('2d');
+      if (ctxTier && !tierChartInstance) {
+        tierChartInstance = new Chart(ctxTier, {
+          type: 'doughnut',
+          data: {
+            labels: ['Starter', 'Pro', 'Enterprise', 'Free'],
+            datasets: [{
+              data: [1, 1, 1, 0],
+              backgroundColor: ['#38bdf8', '#6366f1', '#a855f7', '#52525b'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#a1a1aa', boxWidth: 10 } }
+            }
+          }
+        });
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // UTILITIES
+    // --------------------------------------------------------------------------
+
+    function switchTab(tabId) {
+      const tabs = ['dashboard', 'users', 'history', 'translations', 'billing', 'create-user', 'notifications'];
+      tabs.forEach(t => {
+        const view = document.getElementById(`tab-${t}-view`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (view) view.classList.add('hidden');
+        if (nav) {
+          nav.classList.remove('bg-indigo-600/10', 'text-indigo-400', 'border', 'border-indigo-500/20');
+          nav.classList.add('text-zinc-400');
+        }
+      });
+
+      const activeView = document.getElementById(`tab-${tabId}-view`);
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeNav) {
+        activeNav.classList.add('bg-indigo-600/10', 'text-indigo-400', 'border', 'border-indigo-500/20');
+        activeNav.classList.remove('text-zinc-400');
+      }
+
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('mobileBackdrop');
+      if (window.innerWidth < 768) {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+
+      // Refresh specific tab data on switch
+      if (tabId === 'translations') loadTranslations(false);
+      if (tabId === 'billing') renderBillingTable();
+      if (tabId === 'create-user') {
+        renderRecentCreations();
+        populateSetUserDropdown();
+        // keep billing table fresh too
+        renderBillingTable();
+      }
+      if (tabId === 'notifications') {
+        renderNotificationsPage();
+        renderNotifUsersList();
+        populateNotifTargetDropdown();
+        updateNotificationKPIs();
+      }
+    }
+
+    // ---------------- Create User Tab Logic (Superadmin) ----------------
+    function toggleCreatePassword() {
+      const input = document.getElementById('createPassword');
+      const eye = document.getElementById('createPassEye');
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        if (eye) { eye.classList.remove('fa-eye'); eye.classList.add('fa-eye-slash'); }
+      } else {
+        input.type = 'password';
+        if (eye) { eye.classList.remove('fa-eye-slash'); eye.classList.add('fa-eye'); }
+      }
+    }
+
+    function showCreateUserError(msg) {
+      const box = document.getElementById('createUserError');
+      const txt = document.getElementById('createUserErrorText');
+      if (!box || !txt) return;
+      txt.textContent = msg;
+      box.classList.remove('hidden');
+    }
+    function hideCreateUserError() {
+      const box = document.getElementById('createUserError');
+      if (box) box.classList.add('hidden');
+    }
+
+    async function handleAdminCreateUser(e) {
+      e.preventDefault();
+      if (!isSuperAdmin) {
+        showCreateUserError("Only Superadmins can create users.");
+        showToast("Access Denied", "Only Superadmins can create users from admin.", "error");
+        return;
+      }
+      hideCreateUserError();
+      const btn = document.getElementById('createUserSubmitBtn');
+      const origBtnHTML = btn ? btn.innerHTML : '';
+
+      const name = document.getElementById('createName').value.trim();
+      const email = document.getElementById('createEmail').value.trim();
+      const password = document.getElementById('createPassword').value;
+      const confirm = document.getElementById('createConfirmPassword').value;
+      const role = document.getElementById('createRole').value;
+      const plan = document.getElementById('createPlan').value;
+      const status = document.getElementById('createStatus').value;
+      const credits = Number(document.getElementById('createCredits').value || 0);
+      const appnameInput = document.getElementById('createAppname');
+      const appname = (appnameInput ? appnameInput.value.trim() : '') || "DualTranslator";
+      const country = document.getElementById('createCountry').value.trim() || "Philippines";
+      const phone = document.getElementById('createPhone').value.trim();
+
+      if (!name || !email || !password) {
+        showCreateUserError("Name, email, and password are required.");
+        return;
+      }
+      if (password !== confirm) {
+        showCreateUserError("Passwords do not match.");
+        return;
+      }
+      if (password.length < 6) {
+        showCreateUserError("Password must be at least 6 characters.");
+        return;
+      }
+
+      try {
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...'; }
+
+        // Create secondary Firebase app to avoid logging out current admin
+        let secondaryApp;
+        try {
+          secondaryApp = firebase.app('secondary');
+        } catch (err) {
+          secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary');
+        }
+        const secondaryAuth = secondaryApp.auth();
+
+        // Create Auth user
+        const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+        const newUid = cred.user.uid;
+        // Update profile on secondary user
+        try { await cred.user.updateProfile({ displayName: name }); } catch(_) {}
+
+        // Sign out secondary (cleanup) — keep primary logged in
+        await secondaryAuth.signOut();
+
+        const nowISO = new Date().toISOString();
+        const nowTs = Date.now();
+
+        const userRecord = {
+          uid: newUid,
+          email: email,
+          Email: email,
+          displayName: name,
+          name: name,
+          photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name || email)}&background=10b981&color=fff`,
+          role: role,
+          plan: plan,
+          status: status,
+          credits: credits,
+          initial_credits: credits,
+          credits_used: 0,
+          country: country,
+          phone: phone,
+          Appname: appname,
+          app_name: appname.toLowerCase().replace(/\s+/g,''),
+          createdAt: nowISO,
+          createdAtTs: nowTs,
+          lastLogin: nowISO,
+          lastLoginAt: nowISO,
+          lastLoginTs: nowTs,
+          lastActiveAt: nowISO,
+          updatedAt: nowTs,
+          updatedAtISO: nowISO,
+          createdBy: currentUser.email,
+          createdVia: "admin-create-user-tab"
+        };
+
+        await db.ref(`users/${newUid}`).set(userRecord);
+
+        await logActivity(currentUser.email, `Created user via Admin Tab: ${email} (${role}/${plan}) with ${credits.toLocaleString()} credits`, "CreateUser");
+        await broadcastNotification({
+          title: "New User Created (Admin)",
+          message: `${email} created by ${currentUser.email} — Role: ${role}, Plan: ${plan}, Credits: ${credits.toLocaleString()} — Live sync active to auth.html`,
+          email: currentUser.email,
+          timestamp: nowISO,
+          type: 'superadmin'
+        });
+
+        showToast("User Created!", `${email} — Auth account + ${credits.toLocaleString()} credits — realtime live`, "success");
+
+        // Reset form
+        document.getElementById('adminCreateUserForm').reset();
+        document.getElementById('createCredits').value = "100000";
+        document.getElementById('createCountry').value = "Philippines";
+        document.getElementById('createRole').value = "member";
+        document.getElementById('createPlan').value = "Free";
+        document.getElementById('createStatus').value = "Active";
+
+        // Switch to users tab to show new user instantly
+        setTimeout(() => { switchTab('users'); }, 800);
+
+      } catch (err) {
+        console.error("Admin create user failed:", err);
+        let msg = err.message || "Failed to create user";
+        if (err.code === 'auth/email-already-in-use') msg = "Email already exists in Firebase Auth.";
+        showCreateUserError(msg);
+        showToast("Creation Failed", msg, "error");
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = origBtnHTML; }
+      }
+    }
+
+    // ---------------- Set / Update Existing User Logic ----------------
+    function populateSetUserDropdown() {
+      const select = document.getElementById('setUserSelect');
+      if (!select) return;
+      const currentVal = select.value;
+      const users = Object.values(usersData).map(u => normalizeUserRecord(u, u.uid))
+        .sort((a,b) => (a.email||'').localeCompare(b.email||''));
+
+      select.innerHTML = '<option value="">— Choose user —</option>' + users.map(u => {
+        const label = `${u.email} — ${u.displayName} (${u.role}/${u.plan}) ${Number(u.credits||0).toLocaleString()} credits [${u.uid.slice(0,8)}]`;
+        return `<option value="${u.uid}">${escapeHtml(label)}</option>`;
+      }).join('');
+
+      // Restore previous if still exists
+      if (currentVal && users.find(u=>u.uid===currentVal)) {
+        select.value = currentVal;
+      }
+    }
+
+    function onSetUserSelectChange() {
+      hideSetUserMessages();
+      const select = document.getElementById('setUserSelect');
+      const details = document.getElementById('setUserDetails');
+      if (!select || !details) return;
+      const uid = select.value;
+      if (!uid) { details.classList.add('hidden'); return; }
+      const raw = usersData[uid];
+      if (!raw) { details.classList.add('hidden'); return; }
+      const u = normalizeUserRecord(raw, uid);
+
+      details.classList.remove('hidden');
+      const avatar = document.getElementById('setUserAvatar');
+      if (avatar) avatar.src = u.photoURL;
+      const nameEl = document.getElementById('setUserName');
+      if (nameEl) nameEl.textContent = u.displayName || u.email;
+      const emailEl = document.getElementById('setUserEmail');
+      if (emailEl) emailEl.textContent = u.email;
+      const uidEl = document.getElementById('setUserUid');
+      if (uidEl) uidEl.textContent = `uid: ${u.uid} | RTDB key: ${uid} | App: ${u.Appname || u.app_name}`;
+      const curCredEl = document.getElementById('setUserCurrentCredits');
+      if (curCredEl) curCredEl.textContent = `${Number(u.credits||0).toLocaleString()} credits`;
+
+      const setCredits = document.getElementById('setCredits');
+      if (setCredits) setCredits.value = Number(u.credits||0);
+      const setInit = document.getElementById('setInitialCredits');
+      if (setInit) setInit.value = Number(u.initial_credits|| u.credits || 100000);
+      const setUsed = document.getElementById('setCreditsUsed');
+      if (setUsed) setUsed.value = Number(u.credits_used||0);
+      const setAppname = document.getElementById('setAppname');
+      if (setAppname) setAppname.value = u.Appname || 'DualTranslator';
+      const setRole = document.getElementById('setRole');
+      if (setRole) setRole.value = u.role || 'member';
+      const setPlan = document.getElementById('setPlan');
+      if (setPlan) setPlan.value = u.plan || 'Free';
+      const setStatus = document.getElementById('setStatus');
+      if (setStatus) setStatus.value = u.status || 'Active';
+      const setCountry = document.getElementById('setCountry');
+      if (setCountry) setCountry.value = u.country || 'Philippines';
+      const setPhone = document.getElementById('setPhone');
+      if (setPhone) setPhone.value = u.phone || '';
+      const setCreated = document.getElementById('setCreated');
+      if (setCreated) setCreated.value = getUserCreatedISO(u) ? new Date(getUserCreatedISO(u)).toLocaleString() : '—';
+    }
+
+    function hideSetUserMessages() {
+      const err = document.getElementById('setUserError');
+      const suc = document.getElementById('setUserSuccess');
+      if (err) err.classList.add('hidden');
+      if (suc) suc.classList.add('hidden');
+    }
+    function showSetUserError(msg) {
+      const box = document.getElementById('setUserError');
+      const txt = document.getElementById('setUserErrorText');
+      if (box && txt) { txt.textContent = msg; box.classList.remove('hidden'); }
+    }
+    function showSetUserSuccess(msg) {
+      const box = document.getElementById('setUserSuccess');
+      const txt = document.getElementById('setUserSuccessText');
+      if (box && txt) { txt.textContent = msg; box.classList.remove('hidden'); }
+    }
+
+    function quickSetCreditsAdd(delta) {
+      const input = document.getElementById('setCredits');
+      if (!input) return;
+      const cur = Number(input.value||0);
+      let next = cur + delta;
+      if (next < 0) next = 0;
+      input.value = next;
+      // auto update used preview
+      const initEl = document.getElementById('setInitialCredits');
+      const usedEl = document.getElementById('setCreditsUsed');
+      if (initEl && usedEl) {
+        const init = Number(initEl.value||0);
+        usedEl.value = Math.max(0, init - next);
+      }
+    }
+
+    async function handleSetExistingUser(e) {
+      e.preventDefault();
+      if (!isSuperAdmin) { showSetUserError("Only superadmins can set users."); return; }
+      hideSetUserMessages();
+      const select = document.getElementById('setUserSelect');
+      const uid = select ? select.value : '';
+      if (!uid) { showSetUserError("Please select a user first."); return; }
+      const existing = usersData[uid];
+      if (!existing) { showSetUserError("User not found in RTDB."); return; }
+
+      const btn = document.getElementById('setUserSubmitBtn');
+      const orig = btn ? btn.innerHTML : '';
+      try {
+        if (btn) { btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Saving...'; }
+
+        const credits = Number(document.getElementById('setCredits')?.value || 0);
+        const initial_credits = Number(document.getElementById('setInitialCredits')?.value || credits || 100000);
+        const appname = document.getElementById('setAppname')?.value.trim() || 'DualTranslator';
+        const role = document.getElementById('setRole')?.value || 'member';
+        const plan = document.getElementById('setPlan')?.value || 'Free';
+        const status = document.getElementById('setStatus')?.value || 'Active';
+        const country = document.getElementById('setCountry')?.value.trim() || 'Philippines';
+        const phone = document.getElementById('setPhone')?.value.trim() || '';
+        const credits_used = Math.max(0, initial_credits - credits);
+        const nowISO = new Date().toISOString();
+        const nowTs = Date.now();
+
+        const updates = {
+          credits: credits,
+          initial_credits: initial_credits,
+          credits_used: credits_used,
+          Appname: appname,
+          app_name: appname.toLowerCase().replace(/\s+/g,''),
+          role: role,
+          plan: plan,
+          status: status,
+          country: country,
+          phone: phone,
+          lastCreditUpdateAt: nowISO,
+          lastCreditUpdateBy: currentUser.email,
+          updatedAt: nowTs,
+          updatedAtISO: nowISO,
+          lastActiveAt: nowISO
+        };
+
+        await db.ref(`users/${uid}`).update(updates);
+
+        await logActivity(currentUser.email, `Set/Updated user ${existing.email}: credits ${existing.credits}→${credits}, role ${role}, plan ${plan}`, "SetUser");
+        await broadcastNotification({
+          title: "User Updated (Set)",
+          message: `${existing.email} updated by ${currentUser.email} — Credits: ${credits.toLocaleString()}, Role: ${role}, Plan: ${plan}`,
+          email: currentUser.email,
+          timestamp: nowISO,
+          type: 'superadmin'
+        });
+
+        showSetUserSuccess(`Updated ${existing.email} — ${credits.toLocaleString()} credits, ${role}/${plan} — realtime live to auth.html`);
+        showToast("User Updated", `${existing.email} set — ${credits.toLocaleString()} tokens`, "success");
+      } catch (err) {
+        console.error("Set user failed", err);
+        showSetUserError(err.message || "Failed to update user");
+        showToast("Update Failed", err.message, "error");
+      } finally {
+        if (btn) { btn.disabled=false; btn.innerHTML=orig; }
+      }
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('mobileBackdrop');
+      sidebar.classList.toggle('-translate-x-full');
+      backdrop.classList.toggle('hidden');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatTimeAgo(input) {
+      if (!input) return 'Just now';
+      let date;
+      if (typeof input === 'number') {
+        date = new Date(input);
+      } else {
+        date = new Date(input);
+      }
+      if (isNaN(date.getTime())) return 'Just now';
+      const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (diff < 0) return 'Just now';
+      if (diff < 60) return `${diff}s ago`;
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    // Close notifications when clicking outside
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('notificationMenu');
+      const btn = e.target.closest('[onclick="toggleNotificationDropdown()"]');
+      if (!menu || menu.classList.contains('hidden')) return;
+      if (btn) return;
+      if (!e.target.closest('#notificationMenu')) {
+        menu.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

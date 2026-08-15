@@ -1,0 +1,8 @@
+{
+  "name": "Eburon AI Translator",
+  "description": "Real-time dual translation powered by Eburon AI",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
