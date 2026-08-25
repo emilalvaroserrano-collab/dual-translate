@@ -208,7 +208,14 @@ export default function AuthPage() {
           )}
         </section>
       </main>
-    </div>
+       <footer className="auth-footer">
+         <p>
+           <a href="/privacy/privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+           {' · '}
+           <a href="/privacy/terms.html" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+         </p>
+         <p style={{ fontSize: 11, color: '#484f58', marginTop: 4 }}>Powered by Eburon AI</p>
+       </footer>
   );
 }
 

@@ -428,3 +428,29 @@
     padding-right: 70px;
   }
 }
+/* Auth footer — legal links visible without sign-in */
+.auth-page .auth-footer {
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+  margin-top: 28px;
+  padding-bottom: 16px;
+}
+
+.auth-page .auth-footer p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.auth-page .auth-footer a {
+  color: var(--red2);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color 0.18s ease;
+}
+
+.auth-page .auth-footer a:hover {
+  color: #fff;
+}
