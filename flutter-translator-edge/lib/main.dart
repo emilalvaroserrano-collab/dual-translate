@@ -406,7 +406,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: draft.voiceProfile,
+                      initialValue: draft.voiceProfile,
                       decoration: const InputDecoration(labelText: 'Local Voice Profile'),
                       items: kVoiceProfiles
                           .map((voice) => DropdownMenuItem(value: voice, child: Text(voice)))
@@ -553,7 +553,7 @@ class _LanguageField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(labelText: label),
       items: kLanguages
