@@ -1,0 +1,41 @@
+name: Flutter Translator Edge
+
+on:
+  push:
+    paths:
+      - 'flutter-translator-edge/**'
+      - '.github/workflows/flutter-translator-edge.yml'
+  pull_request:
+    paths:
+      - 'flutter-translator-edge/**'
+      - '.github/workflows/flutter-translator-edge.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: flutter-translator-edge
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Flutter doctor
+        run: flutter doctor -v
+      - name: Bootstrap Android and run checks
+        env:
+          EDGE_BUILD_APK: '1'
+        run: ./tool/bootstrap_android.sh
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-translator-edge-debug
+          path: flutter-translator-edge/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error

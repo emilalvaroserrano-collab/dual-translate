@@ -11,21 +11,48 @@ class NativeCapabilities {
     required this.llm,
     required this.tts,
     required this.vad,
+    this.nativeLibraryLoaded = false,
+    this.pipelineReady = false,
+    this.modelsPresent = false,
+    this.modelsVerified = false,
+    this.runtimeAbi = 0,
+    this.revision = 'unknown',
+    this.modelProfile = 'none',
+    this.issues = const <String>[],
   });
 
   final bool localRuntimeLinked;
+  final bool nativeLibraryLoaded;
+  final bool pipelineReady;
+  final bool modelsPresent;
+  final bool modelsVerified;
+  final int runtimeAbi;
+  final String revision;
+  final String modelProfile;
   final String stt;
   final String llm;
   final String tts;
   final String vad;
+  final List<String> issues;
 
   factory NativeCapabilities.fromMap(Map<Object?, Object?> map) {
+    final rawIssues = map['issues'];
     return NativeCapabilities(
       localRuntimeLinked: map['localRuntimeLinked'] == true,
+      nativeLibraryLoaded: map['nativeLibraryLoaded'] == true,
+      pipelineReady: map['pipelineReady'] == true,
+      modelsPresent: map['modelsPresent'] == true,
+      modelsVerified: map['modelsVerified'] == true,
+      runtimeAbi: map['runtimeAbi'] is num ? (map['runtimeAbi'] as num).toInt() : 0,
+      revision: map['revision']?.toString() ?? 'unknown',
+      modelProfile: map['modelProfile']?.toString() ?? 'none',
       stt: map['stt']?.toString() ?? 'not linked',
       llm: map['llm']?.toString() ?? 'not linked',
       tts: map['tts']?.toString() ?? 'not linked',
       vad: map['vad']?.toString() ?? 'not linked',
+      issues: rawIssues is List
+          ? rawIssues.map((Object? item) => item.toString()).toList(growable: false)
+          : const <String>[],
     );
   }
 }
@@ -62,6 +89,7 @@ class LocalTranslationEngine {
         llm: 'Android host not generated',
         tts: 'Android host not generated',
         vad: 'Android host not generated',
+        issues: <String>['Android native bridge is missing.'],
       );
     }
   }
