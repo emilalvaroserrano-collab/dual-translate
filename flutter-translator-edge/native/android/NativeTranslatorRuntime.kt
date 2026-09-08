@@ -25,6 +25,34 @@ class NativeTranslatorRuntime(
     @Volatile private var currentSessionId: String? = null
     @Volatile private var currentSettings: Map<String, Any?> = emptyMap()
 
+    private val capture = AudioCaptureEngine(
+        onPcm = { samples, sampleRate, captureTimeNs ->
+            bridge.pushPcm16(samples, sampleRate, captureTimeNs)
+        },
+        onLevel = { level ->
+            val session = currentSessionId
+            if (session != null) {
+                emit(
+                    mapOf(
+                        "type" to "mic_level",
+                        "sessionId" to session,
+                        "level" to level,
+                    ),
+                )
+            }
+        },
+        onError = { code, message ->
+            emit(
+                mapOf(
+                    "type" to "error",
+                    "sessionId" to currentSessionId,
+                    "code" to code,
+                    "message" to message,
+                ),
+            )
+        },
+    )
+
     init {
         poller.scheduleAtFixedRate(::drainNativeEvents, 25, 25, TimeUnit.MILLISECONDS)
     }
@@ -51,6 +79,7 @@ class NativeTranslatorRuntime(
             "stt" to if (build.whisper) "whisper.cpp linked" else "whisper.cpp not linked",
             "llm" to if (build.llama) "llama.cpp linked" else "llama.cpp not linked",
             "tts" to if (build.sherpaOnnx) "sherpa-onnx linked" else "sherpa-onnx not linked",
+            "capture" to "Android AudioRecord PCM16 mono; native resampling boundary",
             "modelProfile" to pack.profile,
             "issues" to issues,
         )
@@ -68,7 +97,7 @@ class NativeTranslatorRuntime(
         if (!build.pipelineReady) {
             return@submit RuntimeOutcome.error(
                 "native_pipeline_not_ready",
-                "Native pipeline is compiled only as a contract stub; no cloud fallback is permitted.",
+                "Native pipeline is not yet complete; no cloud fallback is permitted.",
             )
         }
 
@@ -105,18 +134,32 @@ class NativeTranslatorRuntime(
         val sessionId = UUID.randomUUID().toString()
         currentSessionId = sessionId
         currentSettings = settings.toMap()
-        val error = bridge.start(sessionId, settings.toJsonString())
-        if (error != null) {
+        val nativeError = bridge.start(sessionId, settings.toJsonString())
+        if (nativeError != null) {
             currentSessionId = null
-            return@submit RuntimeOutcome.error("native_start_failed", error)
+            return@submit RuntimeOutcome.error("native_start_failed", nativeError)
         }
+
+        val captureResult = capture.start()
+        if (!captureResult.ok) {
+            bridge.stop()
+            currentSessionId = null
+            return@submit captureResult
+        }
+
         emitState("Streaming locally", sessionId)
-        RuntimeOutcome.success(mapOf("sessionId" to sessionId))
+        RuntimeOutcome.success(
+            mapOf(
+                "sessionId" to sessionId,
+                "audio" to captureResult.payload,
+            ),
+        )
     }
 
     fun stop(): CompletableFuture<RuntimeOutcome> = submit {
         val oldSession = currentSessionId
         currentSessionId = null
+        capture.stop()
         bridge.stop()
         emit(
             mapOf(
@@ -130,6 +173,7 @@ class NativeTranslatorRuntime(
 
     fun reset(): CompletableFuture<RuntimeOutcome> = submit {
         bridge.reset()
+        capture.setOutputSuppressed(false)
         emit(
             mapOf(
                 "type" to "interrupted",
@@ -146,6 +190,7 @@ class NativeTranslatorRuntime(
     }
 
     fun setMicMuted(muted: Boolean): CompletableFuture<RuntimeOutcome> = submit {
+        capture.setMuted(muted)
         bridge.setMicMuted(muted)
         RuntimeOutcome.success()
     }
@@ -162,6 +207,11 @@ class NativeTranslatorRuntime(
             val type = event["type"]?.toString()
             val sessionScoped = type !in setOf("error", "state")
             if (sessionScoped && (session == null || eventSession != session)) continue
+
+            when (type) {
+                "audio_started" -> capture.setOutputSuppressed(true)
+                "audio_ended", "interrupted" -> capture.setOutputSuppressed(false)
+            }
             emit(event)
         }
     }
@@ -190,6 +240,7 @@ class NativeTranslatorRuntime(
 
     fun close() {
         currentSessionId = null
+        capture.stop()
         try {
             bridge.stop()
             bridge.shutdown()

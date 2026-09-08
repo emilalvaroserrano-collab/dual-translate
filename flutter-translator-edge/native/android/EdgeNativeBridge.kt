@@ -38,6 +38,11 @@ class EdgeNativeBridge {
         return nativeStart(sessionId, settingsJson)
     }
 
+    fun pushPcm16(samples: ShortArray, sampleRate: Int, captureTimeNs: Long) {
+        if (!libraryLoaded || samples.isEmpty()) return
+        nativePushPcm16(samples, sampleRate, captureTimeNs)
+    }
+
     fun stop() {
         if (libraryLoaded) nativeStop()
     }
@@ -82,6 +87,11 @@ class EdgeNativeBridge {
         settingsJson: String,
     ): String?
     private external fun nativeStart(sessionId: String, settingsJson: String): String?
+    private external fun nativePushPcm16(
+        samples: ShortArray,
+        sampleRate: Int,
+        captureTimeNs: Long,
+    )
     private external fun nativeStop()
     private external fun nativeReset()
     private external fun nativeUpdateSettings(settingsJson: String)
