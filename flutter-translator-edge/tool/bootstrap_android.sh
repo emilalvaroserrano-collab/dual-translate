@@ -15,6 +15,11 @@ flutter create \
   --project-name flutter_translator_edge \
   .
 
+# flutter create adds its stock MyApp widget test when the file is absent. This
+# project intentionally uses DualTranslateEdgeApp and committed contract tests,
+# so remove only the generated stock test before analysis.
+rm -f test/widget_test.dart
+
 KOTLIN_DST="android/app/src/main/kotlin/ai/eburon/flutter_translator_edge"
 mkdir -p "$KOTLIN_DST"
 for source in native/android/*.kt; do
