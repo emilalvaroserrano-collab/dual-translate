@@ -1,0 +1,11 @@
+analyzer:
+  errors:
+    dead_code: warning
+    unused_import: warning
+
+linter:
+  rules:
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_final_fields: true
+    use_super_parameters: true
